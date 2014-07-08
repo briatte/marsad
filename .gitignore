@@ -1,0 +1,9 @@
+
+draft
+
+*.csv
+*.rda
+*.pdf
+
+*Rproj.*
+*.Rproj
