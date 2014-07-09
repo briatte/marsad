@@ -1,5 +1,8 @@
 # draft
 
+dir.create("data", showWarnings = FALSE)
+dir.create("plots", showWarnings = FALSE)
+
 library(plyr)
 library(qdap)
 library(reshape)
@@ -12,7 +15,7 @@ library(network)
 library(ergm)
 library(ergm.count)
 
-if(!file.exists("marsad.rda")) {
+if(!file.exists("data/marsad.rda")) {
 
   root = "http://www.marsad.tn"
   
@@ -50,7 +53,7 @@ if(!file.exists("marsad.rda")) {
                                liste = nfo[2],
                                circo = nfo[3],
                                parti = nfo[4],
-                               bureau = ifelse(length(nfo) > 5, nfo[6], NA),
+                               bureau = ifelse(length(nfo) > 5, nfo[5], NA),
                                comm,
                                votes = ifelse(length(nfo) > 4, as.numeric(gsub("%", "", nfo[5])), NA),
                                bio, stringsAsFactors = FALSE))
@@ -86,6 +89,10 @@ if(!file.exists("marsad.rda")) {
                                                 stringsAsFactors = FALSE))
     
   }
+  
+  #TODO: fix birth years
+
+  rownames(deputes) = deputes$uid
   
   amendements = unique(amendements)
   amendements$nsponsors = 1 + str_count(amendements$aut, ";")
@@ -128,15 +135,15 @@ if(!file.exists("marsad.rda")) {
   
   counts = melt(amendements[, which(grepl("^n", names(amendements))) ])
   counts$variable = substring(counts$variable, 2)
-  qplot(data = counts, x = factor(value), fill = variable, geom = "bar") +
-    scale_x_discrete(breaks = c(0, 1, 2, 5, 10, 20, 30, 60)) +
+  qplot(data = counts, x = factor(value), fill = I("grey25"), geom = "bar") +
+    scale_x_discrete(breaks = c(2, 5, 10, 20, 30, 60)) +
     facet_wrap(~ variable) +
-    labs(x = "number per amendment") +
+    labs(x = "\ncount per amendment", y = "number of amendments\n") +
     guides(fill = FALSE) +
     theme_linedraw(16) +
     theme(panel.grid = element_blank())
   
-  ggsave("counts.pdf", width = 11, height = 9)
+  ggsave("plots/counts_per_amendment.pdf", width = 11, height = 9)
   
   # note: 2 unrecognized sponsors in the data
   # aut = amendements$aut
@@ -146,107 +153,143 @@ if(!file.exists("marsad.rda")) {
   # deputes[ apply(deputes, 1, function(x) { sum(is.na(x)) - 1 }), ]
   # deputes[ grepl("Ennahdha", deputes$bio) & deputes$parti != "Mouvement Nahdha", ]
   
-  save(deputes, amendements, file = "marsad.rda")
+  save(deputes, amendements, file = "data/marsad.rda")
 
-  # write.csv(deputes, "marsad_de.csv", row.names = FALSE)
-  # write.csv(amendements, "marsad_am.csv", row.names = FALSE)
+}
+
+load("data/marsad.rda")
+
+if(!file.exists("data/network.rda")) {
+  
+  # edge list
+  edges = lapply(unique(amendements$uid), function(x) {
+    
+    y = amendements$aut[ amendements$uid == x ]
+    y = unlist(strsplit(y, ";"))
+    
+    w = length(y) # number of sponsors on amendment
+    
+    y = subset(expand.grid(y, y), Var1 != Var2)
+    y = apply(y, 1, function(x) { paste0(sort(x), collapse = ";") })
+    
+    if(length(y))
+      data.frame(uid = unique(y), w, stringsAsFactors = FALSE) # undirected ties
+    
+  })
+  
+  edges = rbind.fill(edges)
+  
+  # raw counts as weights
+  edges = aggregate(w ~ uid, length, data = edges)
+  
+  # Newman-Fowler weights
+  # edges = aggregate(w ~ uid, function(x) sum(1 / x), data = edges)
+  
+  edges$i = gsub("(.*);(.*)", "\\1", edges$uid)
+  edges$j = gsub("(.*);(.*)", "\\2", edges$uid)
+  edges = edges[, c("i", "j", "w") ]
+  
+  # Gross-Shalizi weights
+  # counts = table(c(edges$i, edges$j))
+  # edges$w = edges$w / (counts[ edges$i ] + counts[ edges$j ])
+  
+  # network
+  
+  net = network(edges[, 1:2], directed = FALSE)
+  network::set.edge.attribute(net, "source", edges[, 1])
+  network::set.edge.attribute(net, "target", edges[, 2])
+  network::set.edge.attribute(net, "weight", as.vector(edges[, 3]))
+  
+  wgt = cut(edges[, 3], breaks = quantile(edges[, 3], c(0, 1/2, 3/4, 1)))
+  network::set.edge.attribute(net, "alpha", as.numeric(wgt) / 5)
+  
+  net %v% "sexe" = deputes[ network.vertex.names(net), "sexe" ]
+  net %v% "naissance" = deputes[ network.vertex.names(net), "naissance" ]
+  net %v% "bloc" = deputes[ network.vertex.names(net), "bloc" ]
+  net %v% "liste" = deputes[ network.vertex.names(net), "liste" ]
+  net %v% "circo" = deputes[ network.vertex.names(net), "circo" ]
+  net %v% "parti" = deputes[ network.vertex.names(net), "parti" ]
+  network.vertex.names(net) = deputes[ network.vertex.names(net), "nom" ]
+  
+  save(edges, net, file = "data/network.rda")
   
 }
 
-load("marsad.rda")
+load("data/network.rda")
 
-# edge list
-edges = lapply(unique(amendements$uid), function(x) {
+if(!file.exists("plots/constitution_network.pdf")) {
+
+  same = deputes[ net %e% "source", "bloc"] == deputes[ net %e% "target", "bloc"]
+  bloc = deputes[ net %e% "source", "bloc"]
+  bloc[ !same ] = NA
   
-  y = amendements$aut[ amendements$uid == x ]
-  y = unlist(strsplit(y, ";"))
-
-  w = length(y) # number of sponsors on amendment
+  # color links by party when both cosponsors come from the same bloc
   
-  y = subset(expand.grid(y, y), Var1 != Var2)
-  y = apply(y, 1, function(x) { paste0(sort(x), collapse = ";") })
+  colors = brewer.pal(9, "Set1")
+  names(colors) = sort(unique(bloc))
   
-  if(length(y))
-    data.frame(uid = unique(y), w, stringsAsFactors = FALSE) # undirected ties
+  bloc[ is.na(bloc) ] = "NA"
+  names(colors)[9] = "NA"
   
-})
+  colors[9] = "#EEEEEE"
+  bloc = colors[ bloc ]
+  
+  # plot
+  
+  g = ggnet(net, node.group = net %v% "bloc", # mode = "kamadakawai",
+            segment.alpha = net %e% "alpha", size = 0,
+            segment.color = bloc) +
+    scale_color_manual("", values = colors) +
+    geom_point(size = 9, alpha = 1/3) +
+    geom_point(size = 6, alpha = 1/2) +
+    scale_color_brewer("", palette = "Set1") +
+    guides(size = FALSE)
+  
+  ggsave("plots/constitution_network.pdf", g, width = 12, height = 9)
+  
+}
 
-edges = rbind.fill(edges)
+if(!file.exists("data/ergm.rda")) {
+  
+  # excluding buggy birth year variable
+  ERGM = ergm(net ~ edges +
+                gwdegree(decay = 1, fixed = TRUE) +
+                nodefactor("bloc") +
+                nodematch("bloc", diff = TRUE) + 
+                nodefactor("sexe") +
+                nodematch("sexe"),
+              control = control.ergm(MCMLE.maxit = 100))
+  
+  save(ERGM, file = "data/ergm.rda")
+  
+}
 
-# raw counts as weights
-edges = aggregate(w ~ uid, length, data = edges)
+load("data/ergm.rda")
 
-# Newman-Fowler weights
-# edges = aggregate(w ~ uid, function(x) sum(1 / x), data = edges)
+print(summary(ERGM))
 
-edges$i = gsub("(.*);(.*)", "\\1", edges$uid)
-edges$j = gsub("(.*);(.*)", "\\2", edges$uid)
-edges = edges[, c("i", "j", "w") ]
+coefs = summary(ERGM)$coefs
+names(coefs) = c("b", "se", "mcmc", "p")
+coefs$v = rownames(coefs)
 
-# Gross-Shalizi weights
-# counts = table(c(edges$i, edges$j))
-# edges$w = edges$w / (counts[ edges$i ] + counts[ edges$j ])
+g = qplot(data = subset(coefs, grepl("nodematch", v)),
+          y = b, ymin = b - se, ymax = b + se,
+          x = reorder(v, b), geom = "pointrange") + 
+  coord_flip() + 
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey50") +
+  theme_bw(18) +
+  labs(y = NULL, x = NULL)
 
-# network
+ggsave("plots/ergm_homophilies.pdf", g, width = 12, height = 9)
 
-net = network(edges[, 1:2], directed = FALSE)
-network::set.edge.attribute(net, "source", edges[, 1])
-network::set.edge.attribute(net, "target", edges[, 2])
-network::set.edge.attribute(net, "weight", as.vector(edges[, 3]))
+g = qplot(data = subset(coefs, grepl("edges|nodefactor", v)),
+          y = b, ymin = b - se, ymax = b + se,
+          x = reorder(v, b), geom = "pointrange") + 
+  coord_flip() + 
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey50") +
+  theme_bw(18) +
+  labs(y = NULL, x = NULL)
 
-same = deputes[ net %e% "source", "bloc"] == deputes[ net %e% "target", "bloc"]
-bloc = deputes[ net %e% "source", "bloc"]
-bloc[ !same ] = NA
-
-wgt = cut(edges[, 3], breaks = quantile(edges[, 3], c(0, 1/2, 3/4, 1)))
-network::set.edge.attribute(net, "alpha", as.numeric(wgt) / 5)
-
-rownames(deputes) = deputes$uid
-net %v% "sexe" = deputes[ network.vertex.names(net), "sexe" ]
-net %v% "naissance" = deputes[ network.vertex.names(net), "naissance" ]
-net %v% "bloc" = deputes[ network.vertex.names(net), "bloc" ]
-net %v% "liste" = deputes[ network.vertex.names(net), "liste" ]
-net %v% "circo" = deputes[ network.vertex.names(net), "circo" ]
-net %v% "parti" = deputes[ network.vertex.names(net), "parti" ]
-network.vertex.names(net) = deputes[ network.vertex.names(net), "nom" ]
-
-# color links by party when both cosponsors come from the same bloc
-
-colors = brewer.pal(9, "Set1")
-names(colors) = sort(unique(bloc))
-
-bloc[ is.na(bloc) ] = "NA"
-names(colors)[9] = "NA"
-
-colors[9] = "#EEEEEE"
-bloc = colors[ bloc ]
-
-# plot
-
-g = ggnet(net, node.group = net %v% "bloc", # mode = "kamadakawai",
-      segment.alpha = net %e% "alpha", size = 0,
-      segment.color = bloc) +
-  scale_color_manual("", values = colors) +
-  #       factor(deputes[ net %e% "source", "party" ] ])) +
-  geom_point(size = 9, alpha = 1/3) +
-  geom_point(size = 6, alpha = 1/2) +
-  scale_color_brewer("", palette = "Set1") +
-  guides(size = FALSE)
-
-if(!file.exists("network.pdf"))
-  ggsave("network.pdf", g, width = 12, height = 9)
-
-# excluding buggy birth year variable
-ERGM = ergm(net ~ edges +
-              gwdegree(decay = 1, fixed = TRUE) +
-              nodefactor("bloc") +
-              nodematch("bloc", diff = TRUE) + 
-              nodefactor("sexe") +
-              nodematch("sexe"),
-            control = control.ergm(MCMLE.maxit = 100))
-
-summary(ERGM)
-
-save(ERGM, file = "ergm_nf.rda")
+ggsave("plots/ergm_controls.pdf", g, width = 12, height = 9)
 
 # have a nice day

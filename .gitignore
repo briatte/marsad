@@ -1,9 +1,7 @@
 
 draft
-
-*.csv
-*.rda
-*.pdf
+data
 
 *Rproj.*
 *.Rproj
+.Rapp.history
