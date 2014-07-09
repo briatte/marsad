@@ -2,8 +2,6 @@
 draft
 data
 
-*.jpg
-
 *Rproj.*
 *.Rproj
 .Rapp.history
