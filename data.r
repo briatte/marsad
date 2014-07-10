@@ -1,3 +1,13 @@
+# set to FALSE to build complete network, or use a chapter value
+sample = FALSE
+
+file = ifelse(is.character(sample),
+              paste0("data/network_", sample, ".rda"),
+              "data/network.rda")
+plot = ifelse(is.character(sample),
+              paste0("plots/constitution_network_", sample, ".pdf"),
+              "plots/constitution_network.pdf")
+
 if(!file.exists("data/marsad.rda")) {
   
   root = "http://www.marsad.tn"
@@ -90,6 +100,24 @@ if(!file.exists("data/marsad.rda")) {
   amendements$nsponsors = 1 + str_count(amendements$aut, ";")
   
   rownames(deputes) = deputes$uid
+  
+  # constitutional chapters
+
+  # ch = data.frame(table(amendements$art))
+  amendements$ch = ifelse(amendements$art == "Préambule", "Préambule", NA)
+  amendements$ch[ amendements$art %in% 1:20 ] = "ch1" # principes généraux
+  amendements$ch[ amendements$art %in% 21:49 ] = "ch2" # droits et libertés
+  amendements$ch[ amendements$art %in% 50:70 ] = "ch3" # pouvoir législatif
+  amendements$ch[ amendements$art %in% 71:101 ] = "ch4" # pouvoir exécutif
+  amendements$ch[ amendements$art %in% 102:105 ] = "ch5" # pouvoir judiciaire
+  amendements$ch[ amendements$art %in% 106:117 ] = "ch5_1" # titre 1, justice
+  amendements$ch[ amendements$art %in% 118:124 ] = "ch5_2" # titre 2, cour constit.
+  amendements$ch[ amendements$art %in% 125:130 ] = "ch6" # instances indép.
+  amendements$ch[ amendements$art %in% 131:142 ] = "ch7" # pouvoir local
+  amendements$ch[ amendements$art %in% 143:144 ] = "ch8" # révision constit.
+  amendements$ch[ amendements$art %in% 145:147 ] = "ch9" # dispo. finales
+  amendements$ch[ amendements$art %in% 148:149 ] = "ch10" # dispo. transitoires
+  print(table(amendements$ch))
 
   amendements$nblocs = sapply(unique(amendements$uid), function(x) {
     
@@ -154,7 +182,17 @@ if(!file.exists("data/marsad.rda")) {
 
 load("data/marsad.rda")
 
-if(!file.exists("data/network.rda")) {
+if(is.character(sample)) {
+ 
+  amendements = subset(amendements, ch == sample)
+  cat(sample, ":", nrow(amendements), "amendments")
+  
+  deputes = subset(deputes, uid %in% unique(unlist(strsplit(amendements$aut, ";"))))
+  cat("", nrow(deputes), "MPs\n")
+  
+}
+
+if(!file.exists(file)) {
   
   # edge list
   edges = lapply(unique(amendements$uid), function(x) {
@@ -195,7 +233,11 @@ if(!file.exists("data/network.rda")) {
   network::set.edge.attribute(net, "target", edges[, 2])
   network::set.edge.attribute(net, "weight", as.vector(edges[, 3]))
   
-  wgt = cut(edges[, 3], breaks = quantile(edges[, 3], c(0, 1/2, 3/4, 1)))
+  wgt = unique(quantile(edges[, 3], c(0, 1/2, 3/4, 1)))
+  if(length(wgt) > 1)
+    wgt = cut(edges[, 3], breaks = unique(wgt))
+  else
+    wgt = 5/2
   network::set.edge.attribute(net, "alpha", as.numeric(wgt) / 5)
   
   net %v% "sexe" = deputes[ network.vertex.names(net), "sexe" ]
@@ -208,15 +250,16 @@ if(!file.exists("data/network.rda")) {
   net %v% "lat" = deputes[ network.vertex.names(net), "lat" ]
   network.vertex.names(net) = deputes[ network.vertex.names(net), "nom" ]
   
-  save(edges, net, file = "data/network.rda")
+  save(edges, net, file = file)
   
 }
 
-load("data/network.rda")
+load(file)
 
-if(!file.exists("plots/constitution_network.pdf")) {
+if(!file.exists(plot)) {
   
   rownames(deputes) = deputes$uid
+  
   same = deputes[ net %e% "source", "bloc"] == deputes[ net %e% "target", "bloc"]
   bloc = deputes[ net %e% "source", "bloc"]
   bloc[ !same ] = NA
@@ -224,17 +267,18 @@ if(!file.exists("plots/constitution_network.pdf")) {
   # color links by party when both cosponsors come from the same bloc
   
   colors = brewer.pal(9, "Set1")
-  names(colors) = sort(unique(bloc))
+  colors[9] = "#EEEEEE"
+  names(colors) = c("Alliance Démocratique", "Aucun bloc", "Bloc Démocrates", "Congrès Pour La République",
+                    "Ettakatol", "Fidélité à La Révolution", "Mouvement Nahdha", "Transition Démocratique", "NA")
   
   bloc[ is.na(bloc) ] = "NA"
-  names(colors)[9] = "NA"
-  
-  colors[9] = "#EEEEEE"
   bloc = colors[ bloc ]
   
   # plot
   
-  g = ggnet(net, node.group = net %v% "bloc", # mode = "kamadakawai",
+  colors = colors[ names(colors) %in% unique(net %v% "bloc") ]
+  g = ggnet(net, node.group = net %v% "bloc", node.color = colors,
+            # mode = "kamadakawai",
             segment.alpha = net %e% "alpha", size = 0,
             segment.color = bloc) +
     scale_color_manual("", values = colors) +
@@ -243,7 +287,7 @@ if(!file.exists("plots/constitution_network.pdf")) {
     scale_color_brewer("", palette = "Set1") +
     guides(size = FALSE)
   
-  ggsave("plots/constitution_network.pdf", g, width = 12, height = 9)
+  ggsave(plot, g, width = 12, height = 9)
   
 }
 

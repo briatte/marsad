@@ -2,6 +2,8 @@
 draft
 data
 
+constitution_network_*
+
 *.gexf
 
 *Rproj.*
