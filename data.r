@@ -1,22 +1,5 @@
-# draft
-
-dir.create("data", showWarnings = FALSE)
-dir.create("plots", showWarnings = FALSE)
-
-library(plyr)
-library(qdap)
-library(reshape)
-library(stringr)
-library(XML)
-
-library(GGally)
-library(RColorBrewer)
-library(network)
-library(ergm)
-library(ergm.count)
-
 if(!file.exists("data/marsad.rda")) {
-
+  
   root = "http://www.marsad.tn"
   
   html = htmlParse("http://www.marsad.tn/fr/assemblee")
@@ -32,11 +15,13 @@ if(!file.exists("data/marsad.rda")) {
     name = gsub(" \\| Marsad", "", xpathApply(page, "//title", xmlValue))
     # name = xpathSApply(page, "//div[@id='content']/h1/span[2]", xmlValue)
     
-    cat(sprintf("%3g", length(urls) - which(i == urls)), "Parsing:", i, ":", name, "\n")
+    cat(sprintf("%3g", length(urls) - which(i == urls)),
+        "Parsing:", i, ":", name, "\n")
     
     bio = scrubber(xpathSApply(page, "//div[@id='bio']", xmlValue), fix.space = FALSE)
     nfo = xpathSApply(page, "//div[@id='infos']/div/span[2]", xmlValue)
-    
+    pic = as.vector(xpathSApply(page, "//img[@class='photo']/@src"))
+
     # commissions
     
     page = htmlParse(paste0(root, i, "/commissions"), encoding = "UTF-8")
@@ -56,7 +41,7 @@ if(!file.exists("data/marsad.rda")) {
                                bureau = ifelse(length(nfo) > 5, nfo[5], NA),
                                comm,
                                votes = ifelse(length(nfo) > 4, as.numeric(gsub("%", "", nfo[5])), NA),
-                               bio, stringsAsFactors = FALSE))
+                               pic, bio, stringsAsFactors = FALSE))
     
     # amendements
     
@@ -91,12 +76,21 @@ if(!file.exists("data/marsad.rda")) {
   }
   
   #TODO: fix birth years
-
-  rownames(deputes) = deputes$uid
+  
+  # geocodes
+  
+  geo = c("Allemagne", "Amérique et reste de l'Europe", "France 1", "France 2",
+          "Italie", "Pays arabe et reste du monde")
+  geo = unique(deputes$circo[ !deputes$circo %in% geo ])
+  geo = data.frame(geo, geocode(paste(gsub("\\d", "", geo), "tunisie"), output = "latlona"))
+  
+  deputes = merge(deputes, geo[, -4 ], by.x = "circo", by.y = "geo", all.x = TRUE)
   
   amendements = unique(amendements)
   amendements$nsponsors = 1 + str_count(amendements$aut, ";")
   
+  rownames(deputes) = deputes$uid
+
   amendements$nblocs = sapply(unique(amendements$uid), function(x) {
     
     y = amendements$aut[ amendements$uid == x ]
@@ -135,6 +129,7 @@ if(!file.exists("data/marsad.rda")) {
   
   counts = melt(amendements[, which(grepl("^n", names(amendements))) ])
   counts$variable = substring(counts$variable, 2)
+  
   qplot(data = counts, x = factor(value), fill = I("grey25"), geom = "bar") +
     scale_x_discrete(breaks = c(2, 5, 10, 20, 30, 60)) +
     facet_wrap(~ variable) +
@@ -154,7 +149,7 @@ if(!file.exists("data/marsad.rda")) {
   # deputes[ grepl("Ennahdha", deputes$bio) & deputes$parti != "Mouvement Nahdha", ]
   
   save(deputes, amendements, file = "data/marsad.rda")
-
+  
 }
 
 load("data/marsad.rda")
@@ -209,6 +204,8 @@ if(!file.exists("data/network.rda")) {
   net %v% "liste" = deputes[ network.vertex.names(net), "liste" ]
   net %v% "circo" = deputes[ network.vertex.names(net), "circo" ]
   net %v% "parti" = deputes[ network.vertex.names(net), "parti" ]
+  net %v% "lon" = deputes[ network.vertex.names(net), "lon" ]
+  net %v% "lat" = deputes[ network.vertex.names(net), "lat" ]
   network.vertex.names(net) = deputes[ network.vertex.names(net), "nom" ]
   
   save(edges, net, file = "data/network.rda")
@@ -218,7 +215,8 @@ if(!file.exists("data/network.rda")) {
 load("data/network.rda")
 
 if(!file.exists("plots/constitution_network.pdf")) {
-
+  
+  rownames(deputes) = deputes$uid
   same = deputes[ net %e% "source", "bloc"] == deputes[ net %e% "target", "bloc"]
   bloc = deputes[ net %e% "source", "bloc"]
   bloc[ !same ] = NA
@@ -249,47 +247,4 @@ if(!file.exists("plots/constitution_network.pdf")) {
   
 }
 
-if(!file.exists("data/ergm.rda")) {
-  
-  # excluding buggy birth year variable
-  ERGM = ergm(net ~ edges +
-                gwdegree(decay = 1, fixed = TRUE) +
-                nodefactor("bloc") +
-                nodematch("bloc", diff = TRUE) + 
-                nodefactor("sexe") +
-                nodematch("sexe"),
-              control = control.ergm(MCMLE.maxit = 100))
-  
-  save(ERGM, file = "data/ergm.rda")
-  
-}
-
-load("data/ergm.rda")
-
-print(summary(ERGM))
-
-coefs = summary(ERGM)$coefs
-names(coefs) = c("b", "se", "mcmc", "p")
-coefs$v = rownames(coefs)
-
-g = qplot(data = subset(coefs, grepl("nodematch", v)),
-          y = b, ymin = b - se, ymax = b + se,
-          x = reorder(v, b), geom = "pointrange") + 
-  coord_flip() + 
-  geom_hline(yintercept = 0, linetype = "dashed", color = "grey50") +
-  theme_bw(18) +
-  labs(y = NULL, x = NULL)
-
-ggsave("plots/ergm_homophilies.pdf", g, width = 12, height = 9)
-
-g = qplot(data = subset(coefs, grepl("edges|nodefactor", v)),
-          y = b, ymin = b - se, ymax = b + se,
-          x = reorder(v, b), geom = "pointrange") + 
-  coord_flip() + 
-  geom_hline(yintercept = 0, linetype = "dashed", color = "grey50") +
-  theme_bw(18) +
-  labs(y = NULL, x = NULL)
-
-ggsave("plots/ergm_controls.pdf", g, width = 12, height = 9)
-
-# have a nice day
+# kthxbye

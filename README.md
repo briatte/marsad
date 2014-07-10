@@ -2,7 +2,7 @@ A scraper for [Marsad](http://www.marsad.tn) data that builds a network out of c
 
 ![](plots/constitution_network.jpg)
 
-> Colors are arbitrary.
+> Colors are arbitrary. __See also: [interactive visualization](http://briatte.org/marsad/)__.
 
 Differential homophily [estimates](http://cran.r-project.org/web/packages/ergm/) of political bloc cohesion, controlling for network size, bloc size and degree:
 
@@ -19,6 +19,10 @@ ergm(net ~ edges +
          nodematch("sexe"),
        control = control.ergm(MCMLE.maxit = 100))
 ```
+
+## HOWTO
+
+The main entry point is `make.r`.
 
 ## TODO
 
