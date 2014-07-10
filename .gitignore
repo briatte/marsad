@@ -3,6 +3,7 @@ draft
 data
 
 constitution_network_*
+ergm_*
 
 *.gexf
 

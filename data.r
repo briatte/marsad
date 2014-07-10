@@ -8,6 +8,15 @@ plot = ifelse(is.character(sample),
               paste0("plots/constitution_network_", sample, ".pdf"),
               "plots/constitution_network.pdf")
 
+# color links by party when both cosponsors come from the same bloc
+
+colors = brewer.pal(9, "Set1")
+colors[6] = colors[2] # remove yellow, replace by blue
+colors[2] = "#AAAAAA" # dark grey
+colors[9] = "#EEEEEE" # light grey
+names(colors) = c("Alliance Démocratique", "Aucun bloc", "Bloc Démocrates", "Congrès Pour La République",
+                  "Ettakatol", "Fidélité à La Révolution", "Mouvement Nahdha", "Transition Démocratique", "NA")
+
 if(!file.exists("data/marsad.rda")) {
   
   root = "http://www.marsad.tn"
@@ -109,14 +118,14 @@ if(!file.exists("data/marsad.rda")) {
   amendements$ch[ amendements$art %in% 21:49 ] = "ch2" # droits et libertés
   amendements$ch[ amendements$art %in% 50:70 ] = "ch3" # pouvoir législatif
   amendements$ch[ amendements$art %in% 71:101 ] = "ch4" # pouvoir exécutif
-  amendements$ch[ amendements$art %in% 102:105 ] = "ch5" # pouvoir judiciaire
-  amendements$ch[ amendements$art %in% 106:117 ] = "ch5_1" # titre 1, justice
-  amendements$ch[ amendements$art %in% 118:124 ] = "ch5_2" # titre 2, cour constit.
+  amendements$ch[ amendements$art %in% 102:124 ] = "ch5" # pouvoir judiciaire
+#   amendements$ch[ amendements$art %in% 106:117 ] = "ch5_1" # titre 1, justice
+#   amendements$ch[ amendements$art %in% 118:124 ] = "ch5_2" # titre 2, cour constit.
   amendements$ch[ amendements$art %in% 125:130 ] = "ch6" # instances indép.
   amendements$ch[ amendements$art %in% 131:142 ] = "ch7" # pouvoir local
-  amendements$ch[ amendements$art %in% 143:144 ] = "ch8" # révision constit.
-  amendements$ch[ amendements$art %in% 145:147 ] = "ch9" # dispo. finales
-  amendements$ch[ amendements$art %in% 148:149 ] = "ch10" # dispo. transitoires
+#   amendements$ch[ amendements$art %in% 143:144 ] = "ch8" # révision constit.
+#   amendements$ch[ amendements$art %in% 145:147 ] = "ch9" # dispo. finales
+#   amendements$ch[ amendements$art %in% 148:149 ] = "ch10" # dispo. transitoires
   print(table(amendements$ch))
 
   amendements$nblocs = sapply(unique(amendements$uid), function(x) {
@@ -190,6 +199,27 @@ if(is.character(sample)) {
   deputes = subset(deputes, uid %in% unique(unlist(strsplit(amendements$aut, ";"))))
   cat("", nrow(deputes), "MPs\n")
   
+} else {
+  
+  blocs = data.frame()
+  for(j in 1:nrow(amendements)) {
+    
+    d = unlist(strsplit(amendements$aut[ j ], ";"))
+    d = deputes[ d, "bloc" ]
+    d = data.frame(art = amendements$art[ j ], d)
+    blocs = rbind(blocs, d)
+    
+  }
+  blocs$art = factor(blocs$art, levels = c("Préambule", 1:146))
+  blocs = merge(blocs, unique(amendements[, c("art", "ch") ]), by = "art", all.x = TRUE)
+
+  g = qplot(data=blocs, x = art, fill = d, alpha = I(2 / 3), geom = "bar") + 
+    scale_x_discrete(breaks = c("Préambule", 21, 51, 71, 102, 125, 131, 143, 145, 148)) + 
+    scale_fill_manual("", values = colors) + 
+    labs(y = "number of amendment sponsors\n", x = "\narticle")
+  
+  ggsave("plots/counts_per_article.pdf", g, width = 16, height = 9)
+
 }
 
 if(!file.exists(file)) {
@@ -263,28 +293,19 @@ if(!file.exists(plot)) {
   same = deputes[ net %e% "source", "bloc"] == deputes[ net %e% "target", "bloc"]
   bloc = deputes[ net %e% "source", "bloc"]
   bloc[ !same ] = NA
-  
-  # color links by party when both cosponsors come from the same bloc
-  
-  colors = brewer.pal(9, "Set1")
-  colors[9] = "#EEEEEE"
-  names(colors) = c("Alliance Démocratique", "Aucun bloc", "Bloc Démocrates", "Congrès Pour La République",
-                    "Ettakatol", "Fidélité à La Révolution", "Mouvement Nahdha", "Transition Démocratique", "NA")
-  
+    
   bloc[ is.na(bloc) ] = "NA"
   bloc = colors[ bloc ]
   
   # plot
   
   colors = colors[ names(colors) %in% unique(net %v% "bloc") ]
-  g = ggnet(net, node.group = net %v% "bloc", node.color = colors,
-            # mode = "kamadakawai",
+  g = ggnet(net, node.group = net %v% "bloc", node.color = colors, # mode = "kamadakawai",
             segment.alpha = net %e% "alpha", size = 0,
             segment.color = bloc) +
     scale_color_manual("", values = colors) +
     geom_point(size = 9, alpha = 1/3) +
     geom_point(size = 6, alpha = 1/2) +
-    scale_color_brewer("", palette = "Set1") +
     guides(size = FALSE)
   
   ggsave(plot, g, width = 12, height = 9)

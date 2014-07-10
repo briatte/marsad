@@ -1,4 +1,4 @@
-sample = "ch1"
+sample = FALSE
 file = ifelse(is.character(sample), paste0("data/ergm_", sample, ".rda"), "data/ergm.rda")
 data = ifelse(is.character(sample), paste0("data/network_", sample, ".rda"), "data/network.rda")
 plot = ifelse(is.character(sample), paste0("ergm_", sample), "ergm")

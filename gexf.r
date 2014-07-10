@@ -7,8 +7,14 @@ if(!file.exists("constitution_network.gexf")) {
   rownames(deputes) = deputes$nom
   deputes = deputes[ network.vertex.names(net), ]
   
-  colors = t(col2rgb(brewer.pal(9, "Set1")))
-  rownames(colors) = c(unique(deputes$bloc), NA)
+  colors = brewer.pal(9, "Set1")
+  colors[6] = colors[2] # remove yellow, replace by blue
+  colors[2] = "#AAAAAA" # dark grey
+  colors[9] = "#EEEEEE" # light grey
+  names(colors) = c("Alliance Démocratique", "Aucun bloc", "Bloc Démocrates", "Congrès Pour La République",
+                    "Ettakatol", "Fidélité à La Révolution", "Mouvement Nahdha", "Transition Démocratique", "NA")
+  
+  colors = t(col2rgb(colors))
   
   rownames(deputes) = deputes$uid
   net %e% "source" = deputes[ net %e% "source", "nom" ]
