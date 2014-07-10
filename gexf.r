@@ -20,7 +20,8 @@ if(!file.exists("constitution_network.gexf")) {
     weight = round(net %e% "weight", 4)
   )
   relations = na.omit(relations)
-    
+  
+  nodes = data.frame(id = 1:nrow(deputes), label = network.vertex.names(net))
   net = as.matrix.network.adjacency(net)
   
   position = do.call("gplot.layout.fruchtermanreingold", list(net, NULL))
@@ -33,14 +34,15 @@ if(!file.exists("constitution_network.gexf")) {
   
   # strong ties (upper quartile)
   q = (relations[, 3] >= quantile(relations[, 3], .75))
-  
-  deputes = sort_df(deputes, "nom")
-  
+    
   nodecolors = lapply(deputes$bloc, function(x)
     data.frame(r = colors[x, 1], g = colors[x, 2], b = colors[x, 3], a = .3 ))
   nodecolors = as.matrix(rbind.fill(nodecolors))
   
-  write.gexf(nodes = data.frame(id = 1:nrow(deputes), label = levels(factor(deputes$nom))),
+  names(deputes)[ which(names(deputes) == "uid") ] = "url"
+  deputes$url = paste0("http://www.marsad.tn/fr/deputes/", deputes$url)
+
+  write.gexf(nodes = nodes,
              edges = relations[, -3],
              edgesWeight = 1 + (relations[, 3] >= quantile(relations[, 3], .75)),
              nodesAtt = deputes[, c(1:8, 12, 14:15) ],
