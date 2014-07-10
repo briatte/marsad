@@ -20,6 +20,10 @@ ergm(net ~ edges +
        control = control.ergm(MCMLE.maxit = 100))
 ```
 
+## DEMO
+
+![](demo.png)
+
 ## HOWTO
 
 The main entry point is `make.r`.
