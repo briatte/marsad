@@ -6,7 +6,9 @@ A scraper for [Marsad](http://www.marsad.tn) data that builds a network out of c
 
 ## DEMO
 
-![](demo.png)
+[![](demo.png)](http://briatte.org/marsad/)
+
+> Click to access (requires Javascript).
 
 ## HOWTO
 
