@@ -8,11 +8,15 @@ A scraper for [Marsad](http://www.marsad.tn) data that builds a network out of c
 
 [![](demo.png)](http://briatte.org/marsad/)
 
-> Click to access (requires Javascript).
+> Click image to view.
 
 ## HOWTO
 
-The main entry point is `make.r`.
+The main entry point is `make.r`, which will
+
+1. collect MP and constitutional amendment data from Marsad.tn
+2. build an undirected network from amendment cosponsorship
+3. model the extent of political bloc homophily in the network
 
 ## SPECS
 
