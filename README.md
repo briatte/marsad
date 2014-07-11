@@ -4,7 +4,7 @@ A scraper for [Marsad](http://www.marsad.tn) data that builds a network out of c
 
 > Colors are arbitrary.
 
-The script will also estimate one-, two- and three-dimensional legislator ideal points from their voting records.
+The code also estimates legislator ideal points from their voting records: [see below](#alpha-NOMINATE).
 
 ## DEMO
 
@@ -25,6 +25,8 @@ The main entry point is `make.r`, which will
 
 ## SPECS
 
+### ERGM
+
 The network model is parametered [as follows](https://github.com/briatte/marsad/blob/master/ergm.r#L4-L10):
 
 ```{S}
@@ -37,11 +39,13 @@ ergm(net ~ edges +
        control = control.ergm(MCMLE.maxit = 100))
 ```
 
+### alpha-NOMINATE
+
 The ideal points are estimated [as follows](https://github.com/briatte/marsad/blob/master/vote.r#L152-L153):
 
 ```{S}
-anominate(RC, dims = 1, polarity = 1, nsamp = 1000, thin = 1,
-                  burnin = 500, random.starts = FALSE, verbose = TRUE)
+anominate(RC, dims = 2, polarity = 1, nsamp = 1000, thin = 1,
+          burnin = 500, random.starts = FALSE, verbose = TRUE)
 ```
 
 Here are results on two dimensions, compared to W-NOMINATE scores:
