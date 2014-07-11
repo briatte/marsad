@@ -4,7 +4,7 @@ A scraper for [Marsad](http://www.marsad.tn) data that builds a network out of c
 
 > Colors are arbitrary.
 
-The code also estimates legislator ideal points from their voting records: [see below](#alpha-nominate).
+The code also estimates legislator ideal points from their voting records: [see below](#nominate).
 
 ## DEMO
 
@@ -39,7 +39,7 @@ ergm(net ~ edges +
        control = control.ergm(MCMLE.maxit = 100))
 ```
 
-### alpha-NOMINATE
+### NOMINATE
 
 The ideal points are estimated [as follows](https://github.com/briatte/marsad/blob/master/vote.r#L152-L153):
 
