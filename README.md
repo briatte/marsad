@@ -45,6 +45,13 @@ The ideal points are estimated by the [`anominate`][anominate] package on severa
 
 ![](plots/idealpoints_2d.jpg)
 
+The settings for the one-dimensional estimator are [as follows](https://github.com/briatte/marsad/blob/master/vote.r#L152-L153):
+
+```{S}
+anominate(RC, dims = 1, polarity = 1, nsamp = 1000, thin = 1,
+                  burnin = 500, random.starts = FALSE, verbose = TRUE)
+```
+
 [anominate]: http://cran.r-project.org/web/packages/anominate/
 
 ## TODO
