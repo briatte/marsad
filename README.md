@@ -19,7 +19,7 @@ The main entry point is `make.r`, which will
 1. collect MP and constitutional amendment data from Marsad.tn
 2. build an undirected network from amendment cosponsorship
 3. model the extent of political bloc homophily in the network
-4. collect MP votes and estimate [alpha-NOMINATE][anominate] ideal points
+4. collect MP votes and estimate [alpha-NOMINATE](http://cran.r-project.org/web/packages/anominate/) ideal points
 
 > __Note:__ the `data.r`, `ergm.r` and `gexf.r` scripts can be set to run on a subset of the amendments data: adjust the `sample` to run on a specific segment of the Constitution (either `"Préambule"` or `"ch1"` to `"ch7"`). Each script defaults to `FALSE` to run on the complete network.
 
@@ -37,22 +37,16 @@ ergm(net ~ edges +
        control = control.ergm(MCMLE.maxit = 100))
 ```
 
-Differential homophily [estimates](http://cran.r-project.org/web/packages/ergm/) of political bloc cohesion, controlling for network size, bloc size and degree:
-
-![](plots/ergm_homophilies.jpg)
-
-The ideal points are estimated by the [`anominate`][anominate] package on several dimensions. Here are results on two dimensions, compared to W-NOMINATE scores:
-
-![](plots/idealpoints_2d.jpg)
-
-The settings for the one-dimensional estimator are [as follows](https://github.com/briatte/marsad/blob/master/vote.r#L152-L153):
+The ideal points are estimated [as follows](https://github.com/briatte/marsad/blob/master/vote.r#L152-L153):
 
 ```{S}
 anominate(RC, dims = 1, polarity = 1, nsamp = 1000, thin = 1,
                   burnin = 500, random.starts = FALSE, verbose = TRUE)
 ```
 
-[anominate]: http://cran.r-project.org/web/packages/anominate/
+Here are results on two dimensions, compared to W-NOMINATE scores:
+
+![](plots/idealpoints_2d.jpg)
 
 ## TODO
 
