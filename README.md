@@ -52,6 +52,12 @@ Here are results on two dimensions, compared to W-NOMINATE scores:
 
 ![](plots/idealpoints_2d.jpg)
 
+All but two Nahdha members score above 0, and all but 13 non-Nahdha members score below 0:
+
+![](plots/idealpoints.jpg)
+
+> The range around the first dimension estimate is a 95% credible interval. The lighter dots mark the second dimension estimate.
+
 ## TODO
 
 * fix invalid birth year values
