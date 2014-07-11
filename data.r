@@ -202,24 +202,28 @@ if(is.character(sample)) {
   
 } else {
   
-  blocs = data.frame()
-  for(j in 1:nrow(amendements)) {
+  if(!file.exists("plots/counts_per_article.pdf")) {
     
-    d = unlist(strsplit(amendements$aut[ j ], ";"))
-    d = deputes[ d, "bloc" ]
-    d = data.frame(art = amendements$art[ j ], d)
-    blocs = rbind(blocs, d)
+    blocs = data.frame()
+    for(j in 1:nrow(amendements)) {
+      
+      d = unlist(strsplit(amendements$aut[ j ], ";"))
+      d = deputes[ d, "bloc" ]
+      d = data.frame(art = amendements$art[ j ], d)
+      blocs = rbind(blocs, d)
+      
+    }
+    blocs$art = factor(blocs$art, levels = c("Préambule", 1:146))
+    blocs = merge(blocs, unique(amendements[, c("art", "ch") ]), by = "art", all.x = TRUE)
     
-  }
-  blocs$art = factor(blocs$art, levels = c("Préambule", 1:146))
-  blocs = merge(blocs, unique(amendements[, c("art", "ch") ]), by = "art", all.x = TRUE)
+    g = qplot(data=blocs, x = art, fill = d, alpha = I(2 / 3), geom = "bar") + 
+      scale_x_discrete(breaks = c("Préambule", 21, 51, 71, 102, 125, 131, 143, 145, 148)) + 
+      scale_fill_manual("", values = colors) + 
+      labs(y = "number of amendment sponsors\n", x = "\narticle")
+    
+    ggsave("plots/counts_per_article.pdf", g, width = 16, height = 9)
 
-  g = qplot(data=blocs, x = art, fill = d, alpha = I(2 / 3), geom = "bar") + 
-    scale_x_discrete(breaks = c("Préambule", 21, 51, 71, 102, 125, 131, 143, 145, 148)) + 
-    scale_fill_manual("", values = colors) + 
-    labs(y = "number of amendment sponsors\n", x = "\narticle")
-  
-  ggsave("plots/counts_per_article.pdf", g, width = 16, height = 9)
+  }
 
 }
 
