@@ -1,7 +1,26 @@
-if(!file.exists("constitution_network.gexf")) {
+sample = FALSE
+file = ifelse(is.character(sample), paste0("constitution_network_", sample, ".gexf"), "constitution_network.gexf")
+data = ifelse(is.character(sample), paste0("data/network_", sample, ".rda"), "data/network.rda")
+
+if(!file.exists(file)) {
+
+  entropize = function(x, n) {
+    by = diff(range(x, na.rm = TRUE)) / 20
+    return(round(x + runif(n, min = by * -1, max = by), 2))
+  }
   
   load("data/marsad.rda")
-  load("data/network.rda")
+  load(data)
+  
+  deputes$naissance = NULL
+
+  # plot nodes with no coordinates at means
+  deputes$lon[ is.na(deputes$lon) ] = mean(deputes$lon, na.rm = TRUE)
+  deputes$lat[ is.na(deputes$lat) ] = mean(deputes$lat, na.rm = TRUE)
+  
+  # add 5% random noise to avoid overplotting
+  deputes$lon = entropize(deputes$lon, network.size(net))
+  deputes$lat = entropize(deputes$lat, network.size(net))
   
   network::delete.vertices(net, which(!network.vertex.names(net) %in% deputes$nom))
   rownames(deputes) = deputes$nom
@@ -51,14 +70,14 @@ if(!file.exists("constitution_network.gexf")) {
   write.gexf(nodes = nodes,
              edges = relations[, -3],
              edgesWeight = 1 + (relations[, 3] >= quantile(relations[, 3], .75)),
-             nodesAtt = deputes[, c(1:8, 12, 14:15) ],
-             nodesVizAtt = list(position = position, color = nodecolors),
+             nodesAtt = deputes[, c("url", "pic", "circo", "sexe", "bloc", "liste", "parti", "lon", "lat") ],
+             nodesVizAtt = list(position = position, color = nodecolors, size = rep(1, nrow(position))),
              edgesVizAtt = list(size = relations[, 3]),
              defaultedgetype = "undirected",
              meta = list(creator = "rgexf",
                          description = "Tunisian Constitution amendment cosponsorships.",
                          keywords = "Constitution, Parliament, Tunisia"),
-             output = "constitution_network.gexf")
+             output = file)
 
 }
 
