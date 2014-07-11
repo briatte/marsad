@@ -4,6 +4,8 @@ A scraper for [Marsad](http://www.marsad.tn) data that builds a network out of c
 
 > Colors are arbitrary.
 
+The script will also estimate one-, two- and three-dimensional legislator ideal points from their voting records.
+
 ## DEMO
 
 [![](demo.png)](http://briatte.org/marsad/)
@@ -17,12 +19,13 @@ The main entry point is `make.r`, which will
 1. collect MP and constitutional amendment data from Marsad.tn
 2. build an undirected network from amendment cosponsorship
 3. model the extent of political bloc homophily in the network
+4. collect MP votes and estimate [alpha-NOMINATE][anominate] ideal points
 
-The `data.r`, `ergm.r` and `gexf.r` can be set to run on a subset of the complete data: adjust the `sample` to run on a specific segment of the Constitution, e.g. `"Préambule"` or `"ch1"`.
+> __Note:__ the `data.r`, `ergm.r` and `gexf.r` scripts can be set to run on a subset of the amendments data: adjust the `sample` to run on a specific segment of the Constitution (either `"Préambule"` or `"ch1"` to `"ch7"`). Each script defaults to `FALSE` to run on the complete network.
 
 ## SPECS
 
-The model is parametered [as follows](https://github.com/briatte/marsad/blob/master/ergm.r#L4-L10):
+The network model is parametered [as follows](https://github.com/briatte/marsad/blob/master/ergm.r#L4-L10):
 
 ```{S}
 ergm(net ~ edges +
@@ -38,8 +41,14 @@ Differential homophily [estimates](http://cran.r-project.org/web/packages/ergm/)
 
 ![](plots/ergm_homophilies.jpg)
 
+The ideal points are estimated by the [`anominate`][anominate] package on several dimensions. Here are results on two dimensions, compared to W-NOMINATE scores:
+
+![](plots/idealpoints_2d.jpg)
+
+[anominate]: http://cran.r-project.org/web/packages/anominate/
+
 ## TODO
 
-* fix birth year values
+* fix invalid birth year values
 * add diagnostics to ERGM
 * add [electoral law](http://www.marsad.tn/fr/loi_electorale/index) amendments

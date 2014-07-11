@@ -32,7 +32,10 @@ if(!file.exists(file)) {
   network::delete.vertices(net, which(!network.vertex.names(net) %in% deputes$nom))
   rownames(deputes) = deputes$nom
   deputes = deputes[ network.vertex.names(net), ]
-  
+
+  deputes$degree = degree(as.sociomatrix(net))
+  deputes$distance = rowMeans(geodist(as.sociomatrix(net))$gdist) # average path length
+
   colors = brewer.pal(9, "Set1")
   colors[6] = colors[2] # remove yellow, replace by blue
   colors[2] = "#AAAAAA" # dark grey
@@ -77,8 +80,9 @@ if(!file.exists(file)) {
   write.gexf(nodes = nodes,
              edges = relations[, -3],
              edgesWeight = 1 + (relations[, 3] >= quantile(relations[, 3], .75)),
-             nodesAtt = deputes[, c("url", "pic", "circo", "sexe", "bloc", "liste", "parti", "lon", "lat") ],
-             nodesVizAtt = list(position = position, color = nodecolors, size = rep(1, nrow(position))),
+             nodesAtt = deputes[, c("url", "pic", "circo", "sexe", "bloc", "liste", "parti",
+                                    "lon", "lat", "degree", "distance") ],
+             nodesVizAtt = list(position = position, color = nodecolors, size = deputes$degree),
              edgesVizAtt = list(size = relations[, 3]),
              defaultedgetype = "undirected",
              meta = list(creator = "rgexf",
