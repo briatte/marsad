@@ -18,6 +18,8 @@ The main entry point is `make.r`, which will
 2. build an undirected network from amendment cosponsorship
 3. model the extent of political bloc homophily in the network
 
+The `data.r`, `ergm.r` and `gexf.r` can be set to run on a subset of the complete data: adjust the `sample` to run on a specific segment of the Constitution, e.g. `"Préambule"` or `"ch1"`.
+
 ## SPECS
 
 The model is parametered [as follows](https://github.com/briatte/marsad/blob/master/ergm.r#L4-L10):
@@ -38,5 +40,6 @@ Differential homophily [estimates](http://cran.r-project.org/web/packages/ergm/)
 
 ## TODO
 
-* fix birth year variable
+* fix birth year values
 * add diagnostics to ERGM
+* add [electoral law](http://www.marsad.tn/fr/loi_electorale/index) amendments

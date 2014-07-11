@@ -4,6 +4,7 @@ sample = FALSE
 file = ifelse(is.character(sample),
               paste0("data/network_", sample, ".rda"),
               "data/network.rda")
+
 plot = ifelse(is.character(sample),
               paste0("plots/constitution_network_", sample, ".pdf"),
               "plots/constitution_network.pdf")

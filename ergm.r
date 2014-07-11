@@ -1,7 +1,17 @@
+# set to FALSE to build complete network, or use a chapter value
 sample = FALSE
-file = ifelse(is.character(sample), paste0("data/ergm_", sample, ".rda"), "data/ergm.rda")
-data = ifelse(is.character(sample), paste0("data/network_", sample, ".rda"), "data/network.rda")
-plot = ifelse(is.character(sample), paste0("ergm_", sample), "ergm")
+
+file = ifelse(is.character(sample),
+              paste0("data/ergm_", sample, ".rda"),
+              "data/ergm.rda")
+
+data = ifelse(is.character(sample),
+              paste0("data/network_", sample, ".rda"),
+              "data/network.rda")
+
+plot = ifelse(is.character(sample),
+              paste0("ergm_", sample),
+              "ergm")
 
 if(!file.exists(file)) {
   
@@ -20,32 +30,36 @@ if(!file.exists(file)) {
   
 }
 
-load(file)
-
-print(summary(ERGM))
-
-coefs = summary(ERGM)$coefs
-names(coefs) = c("b", "se", "mcmc", "p")
-coefs$v = rownames(coefs)
-
-g = qplot(data = subset(coefs, grepl("nodematch", v)),
-          y = b, ymin = b - se, ymax = b + se,
-          x = reorder(v, b), geom = "pointrange") + 
-  coord_flip() + 
-  geom_hline(yintercept = 0, linetype = "dashed", color = "grey50") +
-  theme_bw(18) +
-  labs(y = NULL, x = NULL)
-
-ggsave(paste0("plots/", plot, "_homophilies.pdf"), g, width = 12, height = 9)
-
-g = qplot(data = subset(coefs, grepl("edges|nodefactor", v)),
-          y = b, ymin = b - se, ymax = b + se,
-          x = reorder(v, b), geom = "pointrange") + 
-  coord_flip() + 
-  geom_hline(yintercept = 0, linetype = "dashed", color = "grey50") +
-  theme_bw(18) +
-  labs(y = NULL, x = NULL)
-
-ggsave(paste0("plots/", plot, "_controls.pdf"), g, width = 12, height = 9)
+if(length(dir("plots", paste0(plot, "_(controls|homophilies)"))) < 2) {
+  
+  load(file)
+  
+  print(summary(ERGM))
+  
+  coefs = summary(ERGM)$coefs
+  names(coefs) = c("b", "se", "mcmc", "p")
+  coefs$v = rownames(coefs)
+  
+  g = qplot(data = subset(coefs, grepl("nodematch", v)),
+            y = b, ymin = b - se, ymax = b + se,
+            x = reorder(v, b), geom = "pointrange") + 
+    coord_flip() + 
+    geom_hline(yintercept = 0, linetype = "dashed", color = "grey50") +
+    theme_bw(18) +
+    labs(y = NULL, x = NULL)
+  
+  ggsave(paste0("plots/", plot, "_homophilies.pdf"), g, width = 12, height = 9)
+  
+  g = qplot(data = subset(coefs, grepl("edges|nodefactor", v)),
+            y = b, ymin = b - se, ymax = b + se,
+            x = reorder(v, b), geom = "pointrange") + 
+    coord_flip() + 
+    geom_hline(yintercept = 0, linetype = "dashed", color = "grey50") +
+    theme_bw(18) +
+    labs(y = NULL, x = NULL)
+  
+  ggsave(paste0("plots/", plot, "_controls.pdf"), g, width = 12, height = 9)
+  
+}
 
 # kthxbye

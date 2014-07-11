@@ -21,10 +21,16 @@ library(RColorBrewer)
 library(rgexf)
 library(sna)
 
+# roll call packages
+
+library(pscl)
+library(anominate)
+
 # run
 
 source("data.r") # retrieve MPs and amendments
 source("ergm.r") # cosponsorship network model
 source("gexf.r") # export network graph
+source("vote.r") # get roll call votes
 
 # have a nice day
