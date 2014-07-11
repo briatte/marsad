@@ -135,6 +135,32 @@ plot_idealpoints <- function(x, plot = "plots/idealpoints.pdf") {
   
   ggsave(gsub("_(\\d+d)", "_\\1_density", plot), g, height = 9, width = 18)
   
+  if(dims == 2) {
+    
+    d = data.frame(
+      id = deputes$nom,
+      bl = deputes$bloc,
+      an = anom.means[, 1],
+      lb = summary(legislators[[1]])[[2]][, 1],
+      ub = summary(legislators[[1]])[[2]][, 5]
+    )
+    d$id = factor(d$id, levels = d$id[ order(d$an) ])
+    
+    g = qplot(data = d, x = id, y = an, ymin = lb, ymax = ub, color = bl, geom = "pointrange") + 
+      geom_point(aes(y = anom.means[, 2]), alpha = 1/2) +
+      geom_hline(yintercept = 0, linetype = "dotted", color = "grey50") +
+      scale_color_manual("", values = colors) +
+      coord_flip() + 
+      labs(y = "\nA-NOMINATE", x = NULL) +
+      theme_linedraw(12) +
+      theme(panel.grid = element_blank(),
+            legend.key = element_blank(),
+            axis.text.y = element_text(color = colors[ d$bl[ order(d$an) ] ], size = 6))
+    
+    ggsave("plots/idealpoints.pdf", g, width = 9, height = 18)
+    
+  }
+  
 }
 
 if(!file.exists("data/votes.rda")) {
