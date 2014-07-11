@@ -4,7 +4,7 @@ A scraper for [Marsad](http://www.marsad.tn) data that builds a network out of c
 
 > Colors are arbitrary.
 
-The code also estimates legislator ideal points from their voting records: [see below](#alpha-NOMINATE).
+The code also estimates legislator ideal points from their voting records: [see below](#alpha-nominate).
 
 ## DEMO
 
