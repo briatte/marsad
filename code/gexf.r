@@ -11,7 +11,7 @@ data = ifelse(is.character(sample),
 
 if(!file.exists(file)) {
 
-  entropize = function(x, n) {
+  entropize <- function(x, n) {
     by = diff(range(x, na.rm = TRUE)) / 20
     return(round(x + runif(n, min = by * -1, max = by), 2))
   }

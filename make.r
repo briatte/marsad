@@ -25,12 +25,13 @@ library(sna)
 
 library(pscl)
 library(anominate)
+library(oc)
 
 # run
 
-source("data.r") # retrieve MPs and amendments
-source("ergm.r") # cosponsorship network model
-source("gexf.r") # export network graph
-source("vote.r") # get roll call votes
+source("code/data.r") # retrieve MPs and amendments
+source("code/ergm.r") # cosponsorship network model
+source("code/gexf.r") # export network graph
+source("code/vote.r") # get, model and plot votes
 
 # have a nice day

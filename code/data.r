@@ -95,7 +95,7 @@ if(!file.exists("data/marsad.rda")) {
     
   }
   
-  #TODO: fix birth years
+  # TODO: fix birth years
   
   # geocodes
   
@@ -120,13 +120,13 @@ if(!file.exists("data/marsad.rda")) {
   amendements$ch[ amendements$art %in% 50:70 ] = "ch3" # pouvoir législatif
   amendements$ch[ amendements$art %in% 71:101 ] = "ch4" # pouvoir exécutif
   amendements$ch[ amendements$art %in% 102:124 ] = "ch5" # pouvoir judiciaire
-#   amendements$ch[ amendements$art %in% 106:117 ] = "ch5_1" # titre 1, justice
-#   amendements$ch[ amendements$art %in% 118:124 ] = "ch5_2" # titre 2, cour constit.
+  # amendements$ch[ amendements$art %in% 106:117 ] = "ch5_1" # titre 1, justice
+  # amendements$ch[ amendements$art %in% 118:124 ] = "ch5_2" # titre 2, cour constit.
   amendements$ch[ amendements$art %in% 125:130 ] = "ch6" # instances indép.
   amendements$ch[ amendements$art %in% 131:142 ] = "ch7" # pouvoir local
-#   amendements$ch[ amendements$art %in% 143:144 ] = "ch8" # révision constit.
-#   amendements$ch[ amendements$art %in% 145:147 ] = "ch9" # dispo. finales
-#   amendements$ch[ amendements$art %in% 148:149 ] = "ch10" # dispo. transitoires
+  # amendements$ch[ amendements$art %in% 143:144 ] = "ch8" # révision constit.
+  # amendements$ch[ amendements$art %in% 145:147 ] = "ch9" # dispo. finales
+  # amendements$ch[ amendements$art %in% 148:149 ] = "ch10" # dispo. transitoires
   print(table(amendements$ch))
 
   amendements$nblocs = sapply(unique(amendements$uid), function(x) {
@@ -176,7 +176,7 @@ if(!file.exists("data/marsad.rda")) {
     theme_linedraw(16) +
     theme(panel.grid = element_blank())
   
-  ggsave("plots/counts_per_amendment.pdf", width = 11, height = 9)
+  ggsave("plots/counts_per_constitution_amendment.pdf", width = 11, height = 9)
   
   # note: 2 unrecognized sponsors in the data
   # aut = amendements$aut
@@ -202,7 +202,7 @@ if(is.character(sample)) {
   
 } else {
   
-  if(!file.exists("plots/counts_per_article.pdf")) {
+  if(!file.exists("plots/counts_per_constitution_article.pdf")) {
     
     blocs = data.frame()
     for(j in 1:nrow(amendements)) {
@@ -216,12 +216,12 @@ if(is.character(sample)) {
     blocs$art = factor(blocs$art, levels = c("Préambule", 1:146))
     blocs = merge(blocs, unique(amendements[, c("art", "ch") ]), by = "art", all.x = TRUE)
     
-    g = qplot(data=blocs, x = art, fill = d, alpha = I(2 / 3), geom = "bar") + 
+    g = qplot(data = blocs, x = art, fill = d, alpha = I(2 / 3), geom = "bar") + 
       scale_x_discrete(breaks = c("Préambule", 21, 51, 71, 102, 125, 131, 143, 145, 148)) + 
       scale_fill_manual("", values = colors) + 
       labs(y = "number of amendment sponsors\n", x = "\narticle")
     
-    ggsave("plots/counts_per_article.pdf", g, width = 16, height = 9)
+    ggsave("plots/counts_per_constitution_article.pdf", g, width = 16, height = 9)
 
   }
 

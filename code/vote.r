@@ -3,8 +3,10 @@
 if(!file.exists("data/votes.csv")) {
   
   get_votes <- function(x) {  
+
     u = xpathSApply(p, paste0("//div[contains(@class, 'votants-", x, "')]/a[contains(@href, '/deputes/')]/@href"))
     return(paste0(gsub("/fr/deputes/", "", u), collapse = ";"))
+    
   }
   
   h = htmlParse("http://www.marsad.tn/fr/votes") # /constitution
@@ -75,35 +77,32 @@ if(!file.exists("data/votes_matrix.csv")) {
   
 }
 
-plot_idealpoints <- function(x, plot = "plots/idealpoints.pdf") {
+plot_idealpoints <- function(x, plot) {
   
-  legislators <- x$legislators
-  wnom.result <- x$wnom.result
-  dims <- length(x$legislators)
-  nlegis <- ncol(x$legislators[[1]])
-  anom.means <- matrix(NA, nrow = nlegis, ncol = dims)
-  for(i in 1:dims) {
-    anom.means[, i] <- summary(as.mcmc(legislators[[i]]))[[1]][, "Mean"]
-  }
-  wnom.coords <- na.omit(wnom.result$legislators[, grepl("coord", colnames(wnom.result$legislators))])
-  wnom.coords <- as.matrix(na.omit(wnom.coords), ncol = dims)
+  l = x$legislators         # legislators
+  w = x$wnom.result         # W-NOMINATE
+  d = length(x$legislators) # dimensions
+  a = matrix(NA, nrow = ncol(x$legislators[[1]]), ncol = d) # alpha-NOMINATE
   
-  coords = lapply(1:dims, function(i) {
+  for(i in 1:d)
+    a[, i] <- summary(as.mcmc(l[[i]]))[[1]][, "Mean"]
+  
+  W = na.omit(w$legislators[, grepl("coord", colnames(w$legislators))])
+  W = as.matrix(na.omit(W), ncol = d)
+  
+  coords = lapply(1:d, function(i) {
+    
     data.frame(d = paste("Dimension", i),
-               b = wnom.result$legislators$bloc,
-               x = wnom.coords[, i],
-               y = anom.means[, i],
-               y0 = summary(legislators[[i]])[[2]][, 1],
-               y1 = summary(legislators[[i]])[[2]][, 5]
+               b = w$legislators$bloc,
+               x = W[, i],
+               y = a[, i],
+               y0 = summary(l[[i]])[[2]][, 1],
+               y1 = summary(l[[i]])[[2]][, 5]
     )
-    # main = "W-NOMINATE vs. a-NOMINATE\nIdeal Points (w/ 95% CIs)"
-    # xlab = paste("W-NOM (", dimension.name[i], " Dimension)", sep = "")
-    # ylab = paste("a-NOM (", dimension.name[i], " Dimension)", sep = "")
     
   })
   
   coords = rbind.fill(coords)
-  # coords = melt(coords, "d")
   
   colors = brewer.pal(9, "Set1")
   colors[6] = colors[2] # remove yellow, replace by blue
@@ -126,6 +125,8 @@ plot_idealpoints <- function(x, plot = "plots/idealpoints.pdf") {
   
   g = qplot(data = subset(coords, b != "Aucun bloc"),
             x = y, color = b, fill = b, alpha = I(1/2), geom = "density") +
+    geom_vline(xintercept = 0, linetype = "dotted") +
+    geom_rug(size = 1) +
     facet_wrap(~ d) +
     scale_color_manual("", values = colors) +
     scale_fill_manual("", values = colors) +
@@ -135,19 +136,19 @@ plot_idealpoints <- function(x, plot = "plots/idealpoints.pdf") {
   
   ggsave(gsub("_(\\d+d)", "_\\1_density", plot), g, height = 9, width = 18)
   
-  if(dims == 2) {
+  if(d == 2) {
     
     d = data.frame(
       id = deputes$nom,
       bl = deputes$bloc,
-      an = anom.means[, 1],
-      lb = summary(legislators[[1]])[[2]][, 1],
-      ub = summary(legislators[[1]])[[2]][, 5]
+      an = a[, 1],
+      lb = summary(l[[1]])[[2]][, 1],
+      ub = summary(l[[1]])[[2]][, 5]
     )
     d$id = factor(d$id, levels = d$id[ order(d$an) ])
     
     g = qplot(data = d, x = id, y = an, ymin = lb, ymax = ub, color = bl, geom = "pointrange") + 
-      geom_point(aes(y = anom.means[, 2]), alpha = 1/2) +
+      geom_point(aes(y = a[, 2][ order(d$an) ]), alpha = 1/2) +
       geom_hline(yintercept = 0, linetype = "dotted", color = "grey50") +
       scale_color_manual("", values = colors) +
       coord_flip() + 
@@ -169,10 +170,54 @@ if(!file.exists("data/votes.rda")) {
   
   # roll call
   
+  deputes$party = deputes$bloc # required for loyalty scores
+  deputes$pic = NULL
+  deputes$bio = NULL
+
   RC = rollcall(V, yea = 1, nay = 2, missing = c(0, 3), notInLegis = 4:5,
                 legis.names = deputes$nom, legis.data = deputes,
                 vote.names = votes$uid, vote.data = votes)
   
+  RC = dropUnanimous(RC)
+
+  deputes$loyalty = summary(RC, verbose = TRUE)$partyLoyalty
+
+  t = tapply(deputes$loyalty, deputes$bloc, mean)
+  t = data.frame(bloc = names(t), mu = t)
+  
+  g = qplot(data = deputes, x = loyalty, alpha = I(1/2), fill = bloc, color = bloc, geom = "density") +
+    geom_density(data = transform(deputes, bloc = "All"), fill = "grey75") +
+    geom_vline(data = t, aes(xintercept = mu), linetype = "dotted") +
+    scale_color_manual("", values = colors) +
+    scale_fill_manual("", values = colors) +
+    facet_wrap(~ bloc) +
+    labs(y = NULL, x = "\nloyalty score") +
+    theme_linedraw(16) +
+    theme(legend.position = "none", panel.grid = element_blank(), legend.key = element_blank())
+  
+  ggsave("plots/loyalty.pdf", g, width = 12, height = 12)
+  
+  OC1 = oc(RC, dims = 1, polarity = 1          , verbose = TRUE)
+  OC2 = oc(RC, dims = 2, polarity = c(1, 1)    , verbose = TRUE)
+  OC3 = oc(RC, dims = 3, polarity = c(1, 1, 1) , verbose = TRUE)
+  
+  g = qplot(data = OC2$legislators, x = coord1D, y = coord2D, color = bloc,
+            label = gsub("(\\w)(\\w+) (.*)", "\\1 \\3", nom), size = I(4), 
+            alpha = I(2/3), geom = "text") + 
+    scale_color_manual("", values = colors) + 
+    geom_point(data = transform(OC2$legislators, bloc = "All"), color = "black", alpha = 1/3) +
+    geom_vline(xintercept = 0, linetype = "dotted") +
+    geom_hline(yintercept = 0, linetype = "dotted") +
+    facet_wrap(~ bloc) +
+    guides(color = FALSE) +
+    labs(x = "\nDimension 1", y = "Dimension 2\n") +
+    theme_linedraw(16) +
+    theme(legend.position = "right",
+          panel.grid = element_blank(),
+          legend.key = element_blank())
+  
+  ggsave("plots/oc_2d.pdf", g, width = 12, height = 12)
+    
   # alpha-NOMINATE (slow; right-wing ref. is Fathi Ayadi, Nahdha)
   
   AN1 = anominate(RC, dims = 1, polarity = 1, nsamp = 1000, thin = 1,
@@ -184,14 +229,34 @@ if(!file.exists("data/votes.rda")) {
                   burnin = 500, random.starts = FALSE, verbose = TRUE)
   
   plot_idealpoints(AN2, "plots/idealpoints_2d.pdf")
-
-  AN3 = anominate(RC, dims = 3, polarity = c(1, 1, 1), nsamp = 1000, thin = 1,
-                  burnin = 500, random.starts = FALSE, verbose = TRUE)
   
-  plot_idealpoints(AN3, "plots/idealpoints_3d.pdf")
+  AN3 = anominate(RC, dims = 2, polarity = c(1, 1, 1), nsamp = 1000, thin = 1,
+                  burnin = 500, random.starts = FALSE, verbose = TRUE)
 
-  save(AN1, AN2, AN3, RC, V, votes, deputes, file = "data/votes.rda")
+  plot_idealpoints(AN3, "plots/idealpoints_3d.pdf")
+  
+  save(RC, AN1, AN2, AN3, OC1, OC2, OC3, file = "data/votes.rda")
   
 }
+
+load("data/votes.rda")
+
+cat("Optimal classification:\n",
+    "  Nahdha positive-positive identification:",
+    sum(OC2$legislators$coord1D > 0 & OC2$legislators$coord2D > 0 & grepl("Nahdha", OC2$legislators$bloc)),
+    "out of", sum(grepl("Nahdha", OC2$legislators$bloc)), "\n",
+    "  Non-Nahdha positive-positive identification:",
+    sum(OC2$legislators$coord1D > 0 & OC2$legislators$coord2D > 0 & !grepl("Nahdha", OC2$legislators$bloc)),
+    "out of", sum(!grepl("Nahdha", OC2$legislators$bloc)), "\n")
+
+cat("alpha-NOMINATE scores (2 dimensions):\n",
+    "  Nahdha > 0:",
+    sum(summary(as.mcmc(AN2$legislators[[1]]))[[1]][, "Mean"] > 0 & 
+          grepl("Nahdha", AN2$wnom.result$legislators$bloc)),
+    "out of", sum(grepl("Nahdha", AN2$wnom.result$legislators$bloc)), "\n",
+    "  Non-Nahdha > 0:",
+    sum(summary(as.mcmc(AN2$legislators[[1]]))[[1]][, "Mean"] > 0 &
+          !grepl("Nahdha", AN2$wnom.result$legislators$bloc)),
+    "out of", sum(!grepl("Nahdha", AN2$wnom.result$legislators$bloc)))
 
 # kthxbye
