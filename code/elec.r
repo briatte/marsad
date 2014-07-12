@@ -89,13 +89,6 @@ load("data/electoral_law.rda")
 
 if(!file.exists("plots/counts_per_electoral_article.pdf")) {
   
-  colors = brewer.pal(9, "Set1")
-  colors[6] = colors[2] # remove yellow, replace by blue
-  colors[2] = "#AAAAAA" # dark grey
-  colors[9] = "#EEEEEE" # light grey
-  names(colors) = c("Alliance Démocratique", "Aucun bloc", "Bloc Démocrates", "Congrès Pour La République",
-                    "Ettakatol", "Fidélité à La Révolution", "Mouvement Nahdha", "Transition Démocratique", "NA")
-  
   blocs = data.frame()
   for(j in 1:nrow(elec)) {
     
@@ -197,11 +190,11 @@ if(!file.exists("plots/electoral_network.pdf")) {
   
   # plot
   
-  colors = colors[ names(colors) %in% unique(net %v% "bloc") ]
+  plotcolors = colors[ names(colors) %in% unique(net %v% "bloc") ]
   g = ggnet(net, node.group = net %v% "bloc", node.color = colors, # mode = "kamadakawai",
             segment.alpha = net %e% "alpha", size = 0,
             segment.color = bloc) +
-    scale_color_manual("", values = colors) +
+    scale_color_manual("", values = plotcolors) +
     geom_point(size = 9, alpha = 1/3) +
     geom_point(size = 6, alpha = 1/2) +
     guides(size = FALSE)

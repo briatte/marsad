@@ -104,13 +104,6 @@ plot_idealpoints <- function(x, plot) {
   
   coords = rbind.fill(coords)
   
-  colors = brewer.pal(9, "Set1")
-  colors[6] = colors[2] # remove yellow, replace by blue
-  colors[2] = "#AAAAAA" # dark grey
-  colors[9] = "#EEEEEE" # light grey
-  names(colors) = c("Alliance Démocratique", "Aucun bloc", "Bloc Démocrates", "Congrès Pour La République",
-                    "Ettakatol", "Fidélité à La Révolution", "Mouvement Nahdha", "Transition Démocratique", "NA")
-  
   g = qplot(data = coords, y = y, x = x, ymin = y0, ymax = y1, color = b,
             alpha = I(2/3), geom = "pointrange") +
     scale_color_manual("", values = colors) +

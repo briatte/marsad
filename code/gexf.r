@@ -35,16 +35,7 @@ if(!file.exists(file)) {
 
   deputes$degree = degree(as.sociomatrix(net))
   deputes$distance = rowMeans(geodist(as.sociomatrix(net))$gdist) # average path length
-
-  colors = brewer.pal(9, "Set1")
-  colors[6] = colors[2] # remove yellow, replace by blue
-  colors[2] = "#AAAAAA" # dark grey
-  colors[9] = "#EEEEEE" # light grey
-  names(colors) = c("Alliance Démocratique", "Aucun bloc", "Bloc Démocrates", "Congrès Pour La République",
-                    "Ettakatol", "Fidélité à La Révolution", "Mouvement Nahdha", "Transition Démocratique", "NA")
-  
-  colors = t(col2rgb(colors))
-  
+    
   rownames(deputes) = deputes$uid
   net %e% "source" = deputes[ net %e% "source", "nom" ]
   net %e% "target" = deputes[ net %e% "target", "nom" ]
@@ -69,9 +60,10 @@ if(!file.exists(file)) {
   
   # strong ties (upper quartile)
   q = (relations[, 3] >= quantile(relations[, 3], .75))
-    
+  
+  nodecolors = t(col2rgb(colors))
   nodecolors = lapply(deputes$bloc, function(x)
-    data.frame(r = colors[x, 1], g = colors[x, 2], b = colors[x, 3], a = .3 ))
+    data.frame(r = nodecolors[x, 1], g = nodecolors[x, 2], b = nodecolors[x, 3], a = .3 ))
   nodecolors = as.matrix(rbind.fill(nodecolors))
   
   names(deputes)[ which(names(deputes) == "uid") ] = "url"

@@ -1,27 +1,24 @@
-A scraper for [Marsad](http://www.marsad.tn) data that builds a network out of constitutional amendment cosponsorships:
+A scraper for [Marsad](http://www.marsad.tn) data that
 
-![](plots/constitution_network.jpg)
-
-> Colors are arbitrary.
-
-The code also estimates legislator ideal points from their voting records: [see below](#nominate).
+* builds networks out of constitutional and electoral law amendments
+* estimates legislator ideal points from their voting records
 
 ## DEMO
 
 [![](plots/demo.png)](http://briatte.org/marsad/)
 
-> Click image to view.
+> Click image to view amendment cosponsorships on the entire Constitution.
 
 ## HOWTO
 
 The main entry point is `make.r`, which will
 
-1. collect MP and constitutional amendment data from Marsad.tn
-2. build an undirected network from amendment cosponsorship
-3. model the extent of political bloc homophily in the network
+1. collect MP and amendment data from Marsad.tn
+2. build undirected cosponsorship networks
+3. model the extent of political bloc homophily
 4. collect MP votes to estimate [alpha-NOMINATE](http://cran.r-project.org/web/packages/anominate/) and [OC](http://cran.r-project.org/web/packages/oc/) ideal points
 
-> __Note:__ the `data.r`, `ergm.r` and `gexf.r` scripts can be set to run on a subset of the amendments data: adjust the `sample` to run on a specific segment of the Constitution (either `"Préambule"` or `"ch1"` to `"ch7"`). Each script defaults to `FALSE` to run on the complete network.
+> __Note:__ the `data.r`, `ergm.r` and `gexf.r` scripts can be set to run on a subset of the Constitution amendments data: adjust the `sample` to run on a specific segment of the Constitution (either `"Préambule"` or `"ch1"` to `"ch7"`). Each script defaults to `FALSE` to run on the complete network. Electoral law data are collected and estimated separately by `elec.r`.
 
 ## SPECS
 
@@ -41,7 +38,7 @@ ergm(net ~ edges +
 
 ### NOMINATE
 
-The ideal points are estimated [as follows](https://github.com/briatte/marsad/blob/master/code/vote.r#L228-L229):
+The ideal points are estimated [as follows](https://github.com/briatte/marsad/blob/master/code/vote.r#L221-L222):
 
 ```{S}
 anominate(RC, dims = 2, polarity = c(1, 1), nsamp = 1000, thin = 1,
@@ -58,11 +55,11 @@ Similarly, a two-dimensional [optimal classification][oc] assigns 83 out of 87 N
 
 ![](plots/oc_2d.jpg)
 
-[oc]: https://github.com/briatte/marsad/blob/master/code/vote.r#L201
+[oc]: https://github.com/briatte/marsad/blob/master/code/vote.r#L194
 
 ## TODO
 
-* [_] fix invalid birth year values
-* [_] add diagnostics to ERGM
+* [_] add birth year values
+* [x] add diagnostics to ERGM
 * [x] add [electoral law](http://www.marsad.tn/fr/loi_electorale/index) amendments[x]
 * [x] add [votes](http://www.marsad.tn/fr/votes) and ideal points
