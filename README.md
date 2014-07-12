@@ -59,7 +59,7 @@ Similarly, a two-dimensional [optimal classification][oc] assigns 83 out of 87 N
 
 ## TODO
 
-* [_] add birth year values
-* [x] add diagnostics to ERGM
-* [x] add [electoral law](http://www.marsad.tn/fr/loi_electorale/index) amendments[x]
-* [x] add [votes](http://www.marsad.tn/fr/votes) and ideal points
+- [ ] add birth year values
+- [ ] add diagnostics to ERGM
+- [x] add [electoral law](http://www.marsad.tn/fr/loi_electorale/index) amendments[x]
+- [x] add [votes](http://www.marsad.tn/fr/votes) and ideal points
