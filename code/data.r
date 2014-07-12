@@ -2,8 +2,8 @@
 sample = FALSE
 
 file = ifelse(is.character(sample),
-              paste0("data/network_", sample, ".rda"),
-              "data/network.rda")
+              paste0("data/constitution_network_", sample, ".rda"),
+              "data/constitution_network.rda")
 
 plot = ifelse(is.character(sample),
               paste0("plots/constitution_network_", sample, ".pdf"),
@@ -86,8 +86,43 @@ if(!file.exists("data/marsad.rda")) {
     
   }
   
-  # TODO: fix birth years
+  # erase wrong birth years (identified by reading through bios)
+  deputes$naissance[ deputes$uid %in% c("52bdd52412bdaa7f9b90f157",
+                                        "4f4fbcf3bd8cb561570000a1",
+                                        "4f4fbcf3bd8cb561570000ae",
+                                        "4f4fbcf3bd8cb5615700009a",
+                                        "4f4fbcf3bd8cb5615700002b",
+                                        "4f4fbcf3bd8cb5615700005e",
+                                        "4f4fbcf3bd8cb56157000010",
+                                        "4f4fbcf3bd8cb5615700009f",
+                                        "514507f4b197de08259e59c2",
+                                        "4f4fbcf3bd8cb561570000d3",
+                                        "4f4fbcf3bd8cb5615700004b",
+                                        "51caff6d7ea2c47c3f3672ac",
+                                        "535fc27e12bdaa078ab824d7") ] = NA
+  # fixes
+  deputes$naissance[ deputes$uid == "4f4fbcf3bd8cb5615700000e" ] = 1961
+  deputes$naissance[ deputes$uid == "4f4fbcf3bd8cb5615700000c" ] = 1983
+  deputes$naissance[ deputes$uid == "4f4fbcf3bd8cb56157000099" ] = 1980
+  deputes$naissance[ deputes$uid == "4f4fbcf3bd8cb5615700009a" ] = 1963
+  deputes$naissance[ deputes$uid == "4f4fbcf3bd8cb5615700009a" ] = 1963
+  deputes$naissance[ deputes$uid == "4f4fbcf3bd8cb56157000010" ] = 1953
+  deputes$naissance[ deputes$uid == "4f4fbcf3bd8cb56157000028" ] = 1977
   
+  # approximate (sometimes very approximate) fixes
+  deputes$naissance[ deputes$uid == "52bdd52412bdaa7f9b90f157" ] = 1960 # undergrad in 1978
+  deputes$naissance[ deputes$uid == "4f4fbcf3bd8cb561570000a1" ] = 1964 # Google Images, looks like 50...
+  deputes$naissance[ deputes$uid == "4f4fbcf3bd8cb561570000ae" ] = 1963 # graduated in 1984
+  deputes$naissance[ deputes$uid == "4f4fbcf3bd8cb561570000b2" ] = 1964 # Google Images, looks like 50...
+  deputes$naissance[ deputes$uid == "535fc27e12bdaa078ab824d7" ] = 1974 # Google Images, looks like 40...
+  deputes$naissance[ deputes$uid == "4f4fbcf3bd8cb5615700005e" ] = 1974 # Google Images, looks like 50...
+  deputes$naissance[ deputes$uid == "4f4fbcf3bd8cb5615700002b" ] = 1960 # graduated in 1981
+  deputes$naissance[ deputes$uid == "4f4fbcf3bd8cb5615700009f" ] = 1966 # finished high school in 1984
+  deputes$naissance[ deputes$uid == "514507f4b197de08259e59c2" ] = 1964 # Google Images, looks like 50...
+  deputes$naissance[ deputes$uid == "4f4fbcf3bd8cb561570000d3" ] = 1966 # went to uni in 1984 (?)
+  deputes$naissance[ deputes$uid == "4f4fbcf3bd8cb5615700004b" ] = 1958 # PhD in Pharmacy in 1984
+  deputes$naissance[ deputes$uid == "51caff6d7ea2c47c3f3672ac" ] = 1958 # guesstimated close to above
+
   # geocodes
   
   geo = c("Allemagne", "Amérique et reste de l'Europe", "France 1", "France 2",
@@ -98,7 +133,7 @@ if(!file.exists("data/marsad.rda")) {
   deputes = merge(deputes, geo[, -4 ], by.x = "circo", by.y = "geo", all.x = TRUE)
   
   amendements = unique(amendements)
-  amendements$nsponsors = 1 + str_count(amendements$aut, ";")
+  # amendements$nsponsors = 1 + str_count(amendements$aut, ";")
   
   rownames(deputes) = deputes$uid
   

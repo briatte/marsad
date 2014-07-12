@@ -6,8 +6,8 @@ file = ifelse(is.character(sample),
               "data/ergm.rda")
 
 data = ifelse(is.character(sample),
-              paste0("data/network_", sample, ".rda"),
-              "data/network.rda")
+              paste0("data/constitution_network_", sample, ".rda"),
+              "data/constitution_network.rda")
 
 plot = ifelse(is.character(sample),
               paste0("ergm_", sample),
@@ -33,7 +33,6 @@ if(!file.exists(file)) {
 if(length(dir("plots", paste0(plot, "_(controls|homophilies)"))) < 2) {
   
   load(file)
-  
   print(summary(ERGM))
   
   coefs = summary(ERGM)$coefs

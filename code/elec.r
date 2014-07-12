@@ -203,38 +203,47 @@ if(!file.exists("plots/electoral_network.pdf")) {
   
 }
 
-ERGM = ergm(net ~ edges +
-              gwdegree(decay = 1, fixed = TRUE) +
-              nodefactor("bloc") +
-              nodematch("bloc", diff = TRUE) + 
-              nodefactor("sexe") +
-              nodematch("sexe"),
-            control = control.ergm(MCMLE.maxit = 100))
+if(!file.exists("data/ergm_elec.rda")) {
+ 
+  ERGM = ergm(net ~ edges +
+                gwdegree(decay = 1, fixed = TRUE) +
+                nodefactor("bloc") +
+                nodematch("bloc", diff = TRUE) + 
+                nodefactor("sexe") +
+                nodematch("sexe"),
+              control = control.ergm(MCMLE.maxit = 100))
+    
+  save(ERGM, file = "data/ergm_elec.rda")
+  
+}
 
-print(summary(ERGM))
+if(length(dir("plots", "ergm_elec_(controls|homophilies)")) < 2) {
 
-save(ERGM, file = "data/ergm_elec.rda")
+  load("data/ergm_elec.rda")
+  print(summary(ERGM))
+  
+  coefs = summary(ERGM)$coefs
+  names(coefs) = c("b", "se", "mcmc", "p")
+  coefs$v = rownames(coefs)
+  
+  g = qplot(data = subset(coefs, grepl("nodematch", v)),
+            y = b, ymin = b - se, ymax = b + se,
+            x = reorder(v, b), geom = "pointrange") + 
+    coord_flip() + 
+    geom_hline(yintercept = 0, linetype = "dashed", color = "grey50") +
+    theme_bw(18) +
+    labs(y = NULL, x = NULL)
+  
+  ggsave(paste0("plots/ergm_elec_homophilies.pdf"), g, width = 12, height = 9)
+  
+  g = qplot(data = subset(coefs, grepl("edges|nodefactor", v)),
+            y = b, ymin = b - se, ymax = b + se,
+            x = reorder(v, b), geom = "pointrange") + 
+    coord_flip() + 
+    geom_hline(yintercept = 0, linetype = "dashed", color = "grey50") +
+    theme_bw(18) +
+    labs(y = NULL, x = NULL)
+  
+  ggsave(paste0("plots/ergm_elec_controls.pdf"), g, width = 12, height = 9)
 
-coefs = summary(ERGM)$coefs
-names(coefs) = c("b", "se", "mcmc", "p")
-coefs$v = rownames(coefs)
-
-g = qplot(data = subset(coefs, grepl("nodematch", v)),
-          y = b, ymin = b - se, ymax = b + se,
-          x = reorder(v, b), geom = "pointrange") + 
-  coord_flip() + 
-  geom_hline(yintercept = 0, linetype = "dashed", color = "grey50") +
-  theme_bw(18) +
-  labs(y = NULL, x = NULL)
-
-ggsave(paste0("plots/ergm_elec_homophilies.pdf"), g, width = 12, height = 9)
-
-g = qplot(data = subset(coefs, grepl("edges|nodefactor", v)),
-          y = b, ymin = b - se, ymax = b + se,
-          x = reorder(v, b), geom = "pointrange") + 
-  coord_flip() + 
-  geom_hline(yintercept = 0, linetype = "dashed", color = "grey50") +
-  theme_bw(18) +
-  labs(y = NULL, x = NULL)
-
-ggsave(paste0("plots/ergm_elec_controls.pdf"), g, width = 12, height = 9)
+}

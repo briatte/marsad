@@ -5,9 +5,11 @@ A scraper for [Marsad](http://www.marsad.tn) data that
 
 ## DEMO
 
+Click to view the amendment cosponsorship network of the entire Constitution:
+
 [![](plots/demo.png)](http://briatte.org/marsad/)
 
-> Click image to view amendment cosponsorships on the entire Constitution.
+> Based on data up to July 12, 2014.
 
 ## HOWTO
 
@@ -61,5 +63,5 @@ Similarly, a two-dimensional [optimal classification][oc] assigns 83 out of 87 N
 
 - [ ] add birth year values
 - [ ] add diagnostics to ERGM
-- [x] add [electoral law](http://www.marsad.tn/fr/loi_electorale/index) amendments[x]
+- [x] add [electoral law](http://www.marsad.tn/fr/loi_electorale/index) amendments
 - [x] add [votes](http://www.marsad.tn/fr/votes) and ideal points
