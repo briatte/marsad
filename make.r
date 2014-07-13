@@ -14,7 +14,9 @@ library(XML)
 
 # network packages
 
-library(ergm)
+# library(ergm)
+# library(ergm.count)
+library(latentnet)
 library(GGally)
 library(network)
 library(RColorBrewer)
@@ -40,10 +42,9 @@ names(colors) = c("Alliance Démocratique", "Aucun bloc", "Bloc Démocrates",
 
 # run
 
-source("code/data.r") # retrieve MPs and Constitution amendments
-source("code/elec.r") # get, model and plot electoral amendments
-source("code/ergm.r") # model Constitution cosponsorship network
-source("code/gexf.r") # export Constitution cosponsorship network
-source("code/vote.r") # get, model and plot roll call votes
+source("code/data.r") # scrape MPs and amendments
+source("code/ergm.r") # cosponsorship network model
+# source("code/gexf.r") # export Constitution cosponsorship network
+# source("code/vote.r") # scrape, model and plot roll call votes
 
 # have a nice day
