@@ -1,14 +1,3 @@
-# set to FALSE to build complete network, or use a chapter value
-sample = FALSE
-
-file = ifelse(is.character(sample),
-              paste0("data/constitution_network_", sample, ".rda"),
-              "data/constitution_network.rda")
-
-plot = ifelse(is.character(sample),
-              paste0("plots/constitution_network_", sample, ".pdf"),
-              "plots/constitution_network.pdf")
-
 if(!file.exists("data/marsad.rda")) {
   
   root = "http://www.marsad.tn"
@@ -123,6 +112,8 @@ if(!file.exists("data/marsad.rda")) {
   deputes$naissance[ deputes$uid == "4f4fbcf3bd8cb5615700004b" ] = 1958 # PhD in Pharmacy in 1984
   deputes$naissance[ deputes$uid == "51caff6d7ea2c47c3f3672ac" ] = 1958 # guesstimated close to above
 
+  table(deputes$naissance, exclude = NULL)
+  
   # geocodes
   
   geo = c("Allemagne", "Amérique et reste de l'Europe", "France 1", "France 2",
@@ -132,10 +123,11 @@ if(!file.exists("data/marsad.rda")) {
   
   deputes = merge(deputes, geo[, -4 ], by.x = "circo", by.y = "geo", all.x = TRUE)
   
-  amendements = unique(amendements)
-  # amendements$nsponsors = 1 + str_count(amendements$aut, ";")
+  table(deputes$circo, exclude = NULL)
   
   rownames(deputes) = deputes$uid
+
+  amendements = unique(amendements)
   
   # constitutional chapters
 
@@ -154,192 +146,100 @@ if(!file.exists("data/marsad.rda")) {
   # amendements$ch[ amendements$art %in% 145:147 ] = "ch9" # dispo. finales
   # amendements$ch[ amendements$art %in% 148:149 ] = "ch10" # dispo. transitoires
   print(table(amendements$ch))
+  
+  # deputes[ apply(deputes, 1, function(x) { sum(is.na(x)) - 1 }), ]
 
-  amendements$nblocs = sapply(unique(amendements$uid), function(x) {
+  amendements$type = "Constitution"
+
+  elec = data.frame()
+  for(i in 1:170) {
+    
+    cat("Article", i)
+    h = htmlParse(paste0("http://www.marsad.tn/fr/lois/loi_electorale/article/", i))
+    
+    uid = gsub("/fr/lois/loi_electorale/amendement/", "",
+               xpathSApply(h, "//div[@id='amendements']/div/a[@class='permalink']/@href"))
+    aut = lapply(xpathSApply(h, "//div[@id='amendements']/div/div/div[contains(@id, 'deps-')]"),
+                 xpathSApply, "a/@href")
+    aut = sapply(aut, function(x) { paste0(gsub("/fr/deputes/", "", x), collapse = ";") } )
+    
+    cat("", length(uid), "amendments\n")
+    if(length(uid))
+      elec = rbind(data.frame(art = i, uid, aut, stringsAsFactors = FALSE), elec)
+    
+  }
+  
+  elec$ch = 1 # dispo. générales
+  elec$ch[ elec$art %in% 4:17 ] = 2    # électeur
+  elec$ch[ elec$art %in% 18:46 ] = 3   # candidat
+  elec$ch[ elec$art %in% 47:97 ] = 4   # campagne
+  elec$ch[ elec$art %in% 98:146 ] = 5  # scrutin
+  elec$ch[ elec$art %in% 147:163 ] = 6 # infractions électorales
+  elec$ch[ elec$art %in% 164:170 ] = 7 # dispo. finales et transitoires
+  elec$ch = paste0("ch", elec$ch)
+  elec$type = "Loi électorale"
+
+  amendements = rbind(amendements, elec)
+  
+  n_count <- function(x, attr) {
     
     y = amendements$aut[ amendements$uid == x ]
     y = unlist(strsplit(y, ";"))
     
-    length(table(deputes[ y, "bloc" ]))
+    length(table(deputes[ y, attr ]))
     
-  })
+  }
   
-  amendements$nlists = sapply(unique(amendements$uid), function(x) {
-    
-    y = amendements$aut[ amendements$uid == x ]
-    y = unlist(strsplit(y, ";"))
-    
-    length(table(deputes[ y, "liste" ]))
-    
-  })
+  amendements$nsponsors = 1 + str_count(amendements$aut, ";")
+  amendements$nblocs = sapply(unique(amendements$uid), n_count, attr = "bloc")
+  amendements$nlists = sapply(unique(amendements$uid), n_count, attr = "liste")  
+  amendements$nconstituencies = sapply(unique(amendements$uid), n_count, attr = "circo")
+  amendements$nparties = sapply(unique(amendements$uid), n_count, attr = "parti")
   
-  amendements$nconstituencies = sapply(unique(amendements$uid), function(x) {
-    
-    y = amendements$aut[ amendements$uid == x ]
-    y = unlist(strsplit(y, ";"))
-    
-    length(table(deputes[ y, "circo" ]))
-    
-  })
-  
-  amendements$nparties = sapply(unique(amendements$uid), function(x) {
-    
-    y = amendements$aut[ amendements$uid == x ]
-    y = unlist(strsplit(y, ";"))
-    
-    length(table(deputes[ y, "parti" ]))
-    
-  })
-  
-  counts = melt(amendements[, which(grepl("^n", names(amendements))) ])
+  counts = melt(amendements[, which(grepl("^n|type", names(amendements))) ], "type")
   counts$variable = substring(counts$variable, 2)
   
   qplot(data = counts, x = factor(value), fill = I("grey25"), geom = "bar") +
     scale_x_discrete(breaks = c(2, 5, 10, 20, 30, 60)) +
-    facet_wrap(~ variable) +
+    facet_grid(type ~ variable, scales = "free_y") +
     labs(x = "\ncount per amendment", y = "number of amendments\n") +
     guides(fill = FALSE) +
     theme_linedraw(16) +
     theme(panel.grid = element_blank())
   
-  ggsave("plots/counts_per_constitution_amendment.pdf", width = 11, height = 9)
-  
-  # note: 2 unrecognized sponsors in the data
-  # aut = amendements$aut
-  # aut = strsplit(aut, ";")
-  # unique(unlist(aut)) [ !unique(unlist(aut)) %in% deputes$uid ]
-  
-  # deputes[ apply(deputes, 1, function(x) { sum(is.na(x)) - 1 }), ]
-  # deputes[ grepl("Ennahdha", deputes$bio) & deputes$parti != "Mouvement Nahdha", ]
+  ggsave("plots/counts_per_amendment.pdf", width = 18, height = 6)
   
   save(deputes, amendements, file = "data/marsad.rda")
   
 }
 
-load("data/marsad.rda")
-
-if(is.character(sample)) {
- 
-  amendements = subset(amendements, ch == sample)
-  cat(sample, ":", nrow(amendements), "amendments")
+if(!file.exists("plots/demographics.pdf")) {
   
-  deputes = subset(deputes, uid %in% unique(unlist(strsplit(amendements$aut, ";"))))
-  cat("", nrow(deputes), "MPs\n")
+  geo = deputes$circo
+  # geo[ grepl("France \\d+", geo) ] = "France"
+  # geo[ grepl("Tunis \\d+", geo) ] = "Tunis"
+  # geo[ grepl("Nabeul \\d+", geo) ] = "Nabeul"
+  geo[ geo %in% c("Allemagne", "Amérique et reste de l'Europe", "France", "Italie",
+                  "Pays arabe et reste du monde") ] = NA
+  geo[ !is.na(geo) ] = "Tunisie"
+  geo[ is.na(geo) ] = "Étranger"
+  deputes$geo = geo
   
-} else {
+  d = data.frame(
+    bloc = deputes$bloc,
+    geo = deputes$geo,
+    age = 2014 - deputes$naissance,
+    sexe = deputes$sexe)
+  d$age = cut(d$age, quantile(d$age, c(0, 1/3, 2/3, 3/3)), include.lowest = TRUE)
   
-  if(!file.exists("plots/counts_per_constitution_article.pdf")) {
-    
-    blocs = data.frame()
-    for(j in 1:nrow(amendements)) {
-      
-      d = unlist(strsplit(amendements$aut[ j ], ";"))
-      d = deputes[ d, "bloc" ]
-      d = data.frame(art = amendements$art[ j ], d)
-      blocs = rbind(blocs, d)
-      
-    }
-    blocs$art = factor(blocs$art, levels = c("Préambule", 1:146))
-    blocs = merge(blocs, unique(amendements[, c("art", "ch") ]), by = "art", all.x = TRUE)
-    
-    g = qplot(data = blocs, x = art, fill = d, alpha = I(2 / 3), geom = "bar") + 
-      scale_x_discrete(breaks = c("Préambule", 21, 51, 71, 102, 125, 131, 143, 145, 148)) + 
-      scale_fill_manual("", values = colors) + 
-      labs(y = "number of amendment sponsors\n", x = "\narticle")
-    
-    ggsave("plots/counts_per_constitution_article.pdf", g, width = 16, height = 9)
-
-  }
-
-}
-
-if(!file.exists(file)) {
+  g = qplot(data = d, x = geo, fill = sexe, geom = "bar") + 
+    facet_grid(age ~ bloc) +
+    scale_fill_brewer("", palette = "Set2") +
+    labs(y = "count\n", x = NULL) +
+    theme_linedraw(16) +
+    theme(panel.grid = element_blank())
   
-  # edge list
-  edges = lapply(unique(amendements$uid), function(x) {
-    
-    y = amendements$aut[ amendements$uid == x ]
-    y = unlist(strsplit(y, ";"))
-    
-    w = length(y) # number of sponsors on amendment
-    
-    y = subset(expand.grid(y, y), Var1 != Var2)
-    y = apply(y, 1, function(x) { paste0(sort(x), collapse = ";") })
-    
-    if(length(y))
-      data.frame(uid = unique(y), w, stringsAsFactors = FALSE) # undirected ties
-    
-  })
-  
-  edges = rbind.fill(edges)
-  
-  # raw counts as weights
-  edges = aggregate(w ~ uid, length, data = edges)
-  
-  # Newman-Fowler weights
-  # edges = aggregate(w ~ uid, function(x) sum(1 / x), data = edges)
-  
-  edges$i = gsub("(.*);(.*)", "\\1", edges$uid)
-  edges$j = gsub("(.*);(.*)", "\\2", edges$uid)
-  edges = edges[, c("i", "j", "w") ]
-  
-  # Gross-Shalizi weights
-  # counts = table(c(edges$i, edges$j))
-  # edges$w = edges$w / (counts[ edges$i ] + counts[ edges$j ])
-  
-  # network
-  
-  net = network(edges[, 1:2], directed = FALSE)
-  network::set.edge.attribute(net, "source", edges[, 1])
-  network::set.edge.attribute(net, "target", edges[, 2])
-  network::set.edge.attribute(net, "weight", as.vector(edges[, 3]))
-  
-  wgt = unique(quantile(edges[, 3], c(0, 1/2, 3/4, 1)))
-  if(length(wgt) > 1)
-    wgt = cut(edges[, 3], breaks = unique(wgt))
-  else
-    wgt = 5/2
-  network::set.edge.attribute(net, "alpha", as.numeric(wgt) / 5)
-  
-  net %v% "sexe" = deputes[ network.vertex.names(net), "sexe" ]
-  net %v% "naissance" = deputes[ network.vertex.names(net), "naissance" ]
-  net %v% "bloc" = deputes[ network.vertex.names(net), "bloc" ]
-  net %v% "liste" = deputes[ network.vertex.names(net), "liste" ]
-  net %v% "circo" = deputes[ network.vertex.names(net), "circo" ]
-  net %v% "parti" = deputes[ network.vertex.names(net), "parti" ]
-  net %v% "lon" = deputes[ network.vertex.names(net), "lon" ]
-  net %v% "lat" = deputes[ network.vertex.names(net), "lat" ]
-  network.vertex.names(net) = deputes[ network.vertex.names(net), "nom" ]
-  
-  save(edges, net, file = file)
-  
-}
-
-load(file)
-
-if(!file.exists(plot)) {
-  
-  rownames(deputes) = deputes$uid
-  
-  same = deputes[ net %e% "source", "bloc"] == deputes[ net %e% "target", "bloc"]
-  bloc = deputes[ net %e% "source", "bloc"]
-  bloc[ !same ] = NA
-    
-  bloc[ is.na(bloc) ] = "NA"
-  bloc = colors[ bloc ]
-  
-  # plot
-  
-  plotcolors = colors[ names(colors) %in% unique(net %v% "bloc") ]
-  g = ggnet(net, node.group = net %v% "bloc", node.color = colors, # mode = "kamadakawai",
-            segment.alpha = net %e% "alpha", size = 0,
-            segment.color = bloc) +
-    scale_color_manual("", values = plotcolors) +
-    geom_point(size = 9, alpha = 1/3) +
-    geom_point(size = 6, alpha = 1/2) +
-    guides(size = FALSE)
-  
-  ggsave(plot, g, width = 12, height = 9)
+  ggsave("plots/demographics.pdf", g, width = 18, height = 9)
   
 }
 

@@ -1,4 +1,4 @@
-# set to FALSE to build complete network, or use a chapter value
+# set to FALSE to build Constitution network, or use a chapter value
 sample = FALSE
 
 file = ifelse(is.character(sample),
@@ -6,8 +6,8 @@ file = ifelse(is.character(sample),
               "constitution_network.gexf")
 
 data = ifelse(is.character(sample),
-              paste0("data/network_", sample, ".rda"),
-              "data/network.rda")
+              paste0("data/network_constit_", sample, ".rda"),
+              "data/network_constit.rda")
 
 if(!file.exists(file)) {
 

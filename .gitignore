@@ -2,10 +2,10 @@
 draft
 data
 
-*_constit.*
-*_rest.*
-constitution_network_*
 ergm_*
+idealpoints_*
+oc_*
+loyalty_*
 
 *.gexf
 
