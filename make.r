@@ -11,6 +11,7 @@ library(qdap)
 library(reshape)
 library(stringr)
 library(XML)
+library(xtable)
 
 # network packages
 

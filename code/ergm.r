@@ -23,7 +23,7 @@ bootMPLE <- function(Y, X, nboot){
   return(coefs)
 }
 
-splits = c("data/ergm_boot.rda", "data/ergm_constit_boot.rda", "data/ergm_elect_boot.rda")
+splits = c("data/ergm.rda", "data/ergm_constit.rda", "data/ergm_elect.rda")
 for(raw in splits) {
   
   if(!file.exists(raw)) {
@@ -48,9 +48,12 @@ for(raw in splits) {
       if(N[j] == "data/network_elect_ch7.rda")
         m = ergmMPLE(net ~ edges +
                        # structure
-                       isolates +
-                       kstar(2) +
-                       triangle +
+                       # isolates +
+                       # kstar(2) +
+                       # triangle +
+                       gwesp +
+                       gwdsp(alpha = 1, fixed = TRUE) +
+                       gwdegree(decay = 1, fixed = TRUE) +
                        # main effects
                        nodefactor("bloc") +
                        nodefactor("sexe") +
@@ -62,9 +65,9 @@ for(raw in splits) {
       else
         m = ergmMPLE(net ~ edges +
                        # structure
-                       isolates +
-                       kstar(2) +
-                       triangle +
+                       gwesp +
+                       gwdsp(alpha = 1, fixed = TRUE) +
+                       gwdegree(decay = 1, fixed = TRUE) +
                        # main effects
                        nodefactor("bloc") +
                        nodefactor("sexe") +
@@ -74,8 +77,7 @@ for(raw in splits) {
                        nodematch("bloc", diff = TRUE) + 
                        nodematch("sexe") +
                        nodematch("geo", diff = TRUE) +
-                       absdiff("naissance"))#,
-      #            control = control.ergm(MCMLE.maxit = 20))
+                       absdiff("naissance"))
       
       colnames(m$predictor) = gsub("\\s", ".", colnames(m$predictor))
       
@@ -123,7 +125,7 @@ for(raw in splits) {
       if(!"nodematch.bloc.Aucun.bloc" %in% colnames(m$predictor))
         m$predictor = cbind(nodematch.bloc.Aucun.bloc = 0, m$predictor)
       
-      m$predictor = m$predictor[, c("edges", "isolates", "kstar2", "triangle", "nodefactor.sexe.H", "nodematch.sexe", "nodecov.naissance", "absdiff.naissance", "nodefactor.geo.Tunisie", "nodefactor.geo.Étranger", "nodematch.geo.Tunisie", "nodematch.geo.Étranger", "nodefactor.bloc.Congrès.Pour.La.République", "nodefactor.bloc.Bloc.Démocrates", "nodefactor.bloc.Mouvement.Nahdha", "nodefactor.bloc.Fidélité.à.La.Révolution", "nodefactor.bloc.Transition.Démocratique", "nodefactor.bloc.Ettakatol", "nodefactor.bloc.Alliance.Démocratique", "nodefactor.bloc.Aucun.bloc", "nodematch.bloc.Congrès.Pour.La.République", "nodematch.bloc.Bloc.Démocrates", "nodematch.bloc.Mouvement.Nahdha", "nodematch.bloc.Fidélité.à.La.Révolution", "nodematch.bloc.Transition.Démocratique", "nodematch.bloc.Ettakatol", "nodematch.bloc.Alliance.Démocratique", "nodematch.bloc.Aucun.bloc") ]
+      m$predictor = m$predictor[, c("edges", "gwesp", "gwdsp.fixed.1", "gwdegree", "nodefactor.sexe.H", "nodematch.sexe", "nodecov.naissance", "absdiff.naissance", "nodefactor.geo.Tunisie", "nodefactor.geo.Étranger", "nodematch.geo.Tunisie", "nodematch.geo.Étranger", "nodefactor.bloc.Congrès.Pour.La.République", "nodefactor.bloc.Bloc.Démocrates", "nodefactor.bloc.Mouvement.Nahdha", "nodefactor.bloc.Fidélité.à.La.Révolution", "nodefactor.bloc.Transition.Démocratique", "nodefactor.bloc.Ettakatol", "nodefactor.bloc.Alliance.Démocratique", "nodefactor.bloc.Aucun.bloc", "nodematch.bloc.Congrès.Pour.La.République", "nodematch.bloc.Bloc.Démocrates", "nodematch.bloc.Mouvement.Nahdha", "nodematch.bloc.Fidélité.à.La.Révolution", "nodematch.bloc.Transition.Démocratique", "nodematch.bloc.Ettakatol", "nodematch.bloc.Alliance.Démocratique", "nodematch.bloc.Aucun.bloc") ]
       
       Y = c(Y, m$response)
       X = rbind(X, cbind(m$predictor, j))
@@ -151,13 +153,15 @@ for(raw in splits) {
   
   p = subset(coefs, !grepl("factor|nodecov", term))
   p$term = gsub("(.*).bloc.|^B", "", p$term)
-  p$term = factor(p$term, levels = c("edges", "isolates", "kstar2", "triangle", "nodematch.sexe", 
-                                     "absdiff.naissance", "nodematch.geo.Tunisie", "nodematch.geo.Étranger", 
+  p$term = factor(p$term, levels = c("edges", "gwesp", "gwdsp.fixed.1", "gwdegree",
+                                     "nodematch.sexe", "absdiff.naissance",
+                                     "nodematch.geo.Tunisie", "nodematch.geo.Étranger", 
                                      "Congrès.Pour.La.République", "Bloc.Démocrates", "Mouvement.Nahdha", 
                                      "Fidélité.à.La.Révolution", "Transition.Démocratique", "Ettakatol", 
                                      "Alliance.Démocratique", "Aucun.bloc"))
-  levels(p$term) = c("Edges", "Isolates", "k-star(2)", "Triangles", "Same gender", 
-                     "Age difference", "Both elected at home", "Both elected abroad", 
+  levels(p$term) = c("Edges", "GWESP", "GWDSP", "GWD",
+                     "Same gender",  "Age difference",
+                     "Both elected at home", "Both elected abroad", 
                      "Congrès.Pour.La.République", "Bloc.Démocrates", "Mouvement.Nahdha", 
                      "Fidélité.à.La.Révolution", "Transition.Démocratique", "Ettakatol", 
                      "Alliance.Démocratique", "Aucun.bloc")
