@@ -202,7 +202,7 @@ load("data/marsad.rda") # MPs
 if(sample == "constit") {
   votes = subset(votes, uid %in% constit)
 } else if(sample == "rest") {
-  votes = subset(votes, uid %in% constit)
+  votes = subset(votes, !uid %in% constit)
 }
 
 m = unlist(strsplit(as.matrix(votes[, 5:9]), ";")) # unique ids
@@ -210,6 +210,8 @@ m = unlist(strsplit(as.matrix(votes[, 5:9]), ";")) # unique ids
 cat("Voters:",
     n_distinct(m[ m %in% deputes$uid ]), "matched",
     n_distinct(m[ !m %in% deputes$uid ]), "unmatched\n")
+
+deputes = deputes[ deputes$uid %in% m, ]
 
 if(!file.exists(scores)) {
   
@@ -318,11 +320,20 @@ if(!file.exists(scores)) {
   deputes$pic = NULL
   deputes$bio = NULL
 
+  # drop 264 votes where yea/nay minority is under 2.5%
+  mino = apply(V, 2, function(x) { any(table(x[ x %in% c(1, 2)]) / length(x[ x %in% c(1, 2) ]) < .025) })
+  if(sum(mino)) {
+    cat("Deleting", sum(mino), "minority votes \n")
+    V = V[, !mino ]
+  }
+  
+  # 1,067 votes
   RC = rollcall(V, yea = 1, nay = 2, missing = c(0, 3), notInLegis = 4:5,
                 legis.names = deputes$nom, legis.data = deputes,
-                vote.names = votes$uid, vote.data = votes)
+                vote.names = votes$uid[ !mino ], vote.data = votes[ !mino, ])
   
-  RC = dropUnanimous(RC)
+  # drops 347 unanimous votes; keeps all legislators and 720 votes
+  RC = dropRollCall(RC, dropList = list(lop = 0, legisMin = 24))
 
   deputes$loyalty = summary(RC, verbose = TRUE)$partyLoyalty
 
@@ -341,9 +352,13 @@ if(!file.exists(scores)) {
   
   ggsave(paste0("plots/loyalty", plot, ".pdf"), g, width = 12, height = 12)
   
-  OC1 = oc(RC, dims = 1, polarity = 1          , verbose = TRUE)
-  OC2 = oc(RC, dims = 2, polarity = c(1, 1)    , verbose = TRUE)
-  OC3 = oc(RC, dims = 3, polarity = c(1, 1, 1) , verbose = TRUE)
+  pol = c( which(deputes$nom == "Jawhara Tiss"), # conservative
+           which(deputes$nom == "Amel Azzouz"),  # moderate
+           1) # random third dimension
+  
+  OC1 = oc(RC, dims = 1, polarity = pol[1]   , verbose = TRUE)
+  OC2 = oc(RC, dims = 2, polarity = pol[1:2] , verbose = TRUE)
+  OC3 = oc(RC, dims = 3, polarity = pol[1:3] , verbose = TRUE)
   
   g = qplot(data = OC2$legislators, x = coord1D, y = coord2D, color = bloc,
             label = gsub("(\\w)(\\w+) (.*)", "\\1 \\3", nom), size = I(4), 
@@ -364,17 +379,17 @@ if(!file.exists(scores)) {
     
   # alpha-NOMINATE (slow; right-wing ref. is Fathi Ayadi, Nahdha)
   
-  AN1 = anominate(RC, dims = 1, polarity = 1, nsamp = 1000, thin = 1,
+  AN1 = anominate(RC, dims = 1, polarity = pol[1], nsamp = 1000, thin = 1,
                   burnin = 500, random.starts = FALSE, verbose = TRUE)
   
   plot_idealpoints(AN1, paste0("plots/idealpoints_1d", plot, ".pdf"))
   
-  AN2 = anominate(RC, dims = 2, polarity = c(1, 1), nsamp = 1000, thin = 1,
+  AN2 = anominate(RC, dims = 2, polarity = pol[1:2], nsamp = 1000, thin = 1,
                   burnin = 500, random.starts = FALSE, verbose = TRUE)
   
   plot_idealpoints(AN2, paste0("plots/idealpoints_2d", plot, ".pdf"))
   
-  AN3 = anominate(RC, dims = 3, polarity = c(1, 1, 1), nsamp = 1000, thin = 1,
+  AN3 = anominate(RC, dims = 3, polarity = pol[1:3], nsamp = 1000, thin = 1,
                   burnin = 500, random.starts = FALSE, verbose = TRUE)
 
   plot_idealpoints(AN3, paste0("plots/idealpoints_3d", plot, ".pdf"))
