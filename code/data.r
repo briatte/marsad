@@ -123,7 +123,18 @@ if(!file.exists("data/marsad.rda")) {
   
   deputes = merge(deputes, geo[, -4 ], by.x = "circo", by.y = "geo", all.x = TRUE)
   
+  geo = deputes$circo
+  # geo[ grepl("France \\d+", geo) ] = "France"
+  # geo[ grepl("Tunis \\d+", geo) ] = "Tunis"
+  # geo[ grepl("Nabeul \\d+", geo) ] = "Nabeul"
+  geo[ geo %in% c("Allemagne", "Amérique et reste de l'Europe", "France", "Italie",
+                  "Pays arabe et reste du monde") ] = NA
+  geo[ !is.na(geo) ] = "Tunisie"
+  geo[ is.na(geo) ] = "Étranger"
+  deputes$geo = geo
+  
   table(deputes$circo, exclude = NULL)
+  table(deputes$geo, exclude = NULL)
   
   rownames(deputes) = deputes$uid
 
@@ -152,7 +163,7 @@ if(!file.exists("data/marsad.rda")) {
   amendements$type = "Constitution"
 
   elec = data.frame()
-  for(i in 1:170) {
+  for(i in 170:1) {
     
     cat("Article", i)
     h = htmlParse(paste0("http://www.marsad.tn/fr/lois/loi_electorale/article/", i))
@@ -214,17 +225,7 @@ if(!file.exists("data/marsad.rda")) {
 }
 
 if(!file.exists("plots/demographics.pdf")) {
-  
-  geo = deputes$circo
-  # geo[ grepl("France \\d+", geo) ] = "France"
-  # geo[ grepl("Tunis \\d+", geo) ] = "Tunis"
-  # geo[ grepl("Nabeul \\d+", geo) ] = "Nabeul"
-  geo[ geo %in% c("Allemagne", "Amérique et reste de l'Europe", "France", "Italie",
-                  "Pays arabe et reste du monde") ] = NA
-  geo[ !is.na(geo) ] = "Tunisie"
-  geo[ is.na(geo) ] = "Étranger"
-  deputes$geo = geo
-  
+    
   d = data.frame(
     bloc = deputes$bloc,
     geo = deputes$geo,
