@@ -148,23 +148,6 @@ if(!file.exists(scores)) {
   OC2 = oc(RC, dims = 2, polarity = pol[1:2] , verbose = TRUE)
   OC3 = oc(RC, dims = 3, polarity = pol[1:3] , verbose = TRUE)
   
-  g = qplot(data = OC2$legislators, x = coord1D, y = coord2D, color = bloc,
-            label = gsub("(\\w)(\\w+) (.*)", "\\1 \\3", nom), size = I(4), 
-            alpha = I(2/3), geom = "text") + 
-    scale_color_manual("", values = colors) + 
-    geom_point(data = transform(OC2$legislators, bloc = "All"), color = "black", alpha = 1/3) +
-    geom_vline(xintercept = 0, linetype = "dotted") +
-    geom_hline(yintercept = 0, linetype = "dotted") +
-    facet_wrap(~ bloc) +
-    guides(color = FALSE) +
-    labs(x = "\nDimension 1", y = "Dimension 2\n") +
-    theme_linedraw(16) +
-    theme(legend.position = "right",
-          panel.grid = element_blank(),
-          legend.key = element_blank())
-  
-  ggsave(paste0("plots/oc_2d", plot, ".pdf"), g, width = 12, height = 12)
-    
   # alpha-NOMINATE (slow; right-wing ref. is Fathi Ayadi, Nahdha)
   
   AN1 = anominate(RC, dims = 1, polarity = pol[1], nsamp = 1000, thin = 1,
@@ -242,32 +225,43 @@ if(!file.exists("plots/idealpoints_an.pdf")) {
     d1 = summary(as.mcmc(AN2$legislators[[1]]))[[1]][, "Mean"],
     d2 = summary(as.mcmc(AN2$legislators[[2]]))[[1]][, "Mean"])
   
-  g = qplot(data = d, x = d1, y = d2, color = bl, size = I(4), alpha = I(2/3)) + 
-    scale_color_manual("", values = colors) +
-    geom_hline(yintercept = 0, linetype = "dotted", color = "grey50") +
-    geom_vline(xintercept = 0, linetype = "dotted", color = "grey50") +
-    labs(y = "alpha-NOMINATE dimension 2\n", x = "\nalpha-NOMINATE dimension 1") +
-    theme_linedraw(12) +
-    theme(panel.grid = element_blank(), legend.key = element_blank())
+  g = qplot(data = d, x = d1, y = d2, color = bl,
+            label = gsub("(\\w)(\\w+) (.*)", "\\1 \\3", id), size = I(4), 
+            alpha = I(2/3), geom = "text") + 
+    scale_color_manual("", values = colors) + 
+    geom_point(data = transform(d, bl = "All"), color = "black", alpha = 1/3) +
+    geom_vline(xintercept = 0, linetype = "dotted") +
+    geom_hline(yintercept = 0, linetype = "dotted") +
+    facet_wrap(~ bl) +
+    guides(color = FALSE) +
+    labs(x = "\nalpha-NOMINATE dimension 1", y = "alpha-NOMINATE dimension 2\n") +
+    theme_linedraw(16) +
+    theme(legend.position = "right",
+          panel.grid = element_blank(),
+          legend.key = element_blank())
   
-  ggsave("plots/idealpoints_an.pdf", g, width = 12, height = 9)
+  ggsave("plots/idealpoints_an.pdf", g, width = 10, height = 10)
 
 }
 
 if(!file.exists("plots/idealpoints_oc.pdf")) {
   
-  g = qplot(y = OC2$legislators$coord2D,
-        x = OC2$legislators$coord1D,
-        color = OC2$legislators$bloc,
-        size = I(4), alpha = I(2/3)) + 
-    scale_color_manual("", values = colors) +
-    geom_hline(yintercept = 0, linetype = "dotted", color = "grey50") +
-    geom_vline(xintercept = 0, linetype = "dotted", color = "grey50") +
-    labs(y = "OC dimension 2\n", x = "\nOC dimension 1") +
-    theme_linedraw(12) +
-    theme(panel.grid = element_blank(), legend.key = element_blank())
+  g = qplot(data = OC2$legislators, x = coord1D, y = coord2D, color = bloc,
+            label = gsub("(\\w)(\\w+) (.*)", "\\1 \\3", nom), size = I(4), 
+            alpha = I(2/3), geom = "text") + 
+    scale_color_manual("", values = colors) + 
+    geom_point(data = transform(OC2$legislators, bloc = "All"), color = "black", alpha = 1/3) +
+    geom_vline(xintercept = 0, linetype = "dotted") +
+    geom_hline(yintercept = 0, linetype = "dotted") +
+    facet_wrap(~ bloc) +
+    guides(color = FALSE) +
+    labs(x = "\nOC dimension 1", y = "OC dimension 2\n") +
+    theme_linedraw(16) +
+    theme(legend.position = "right",
+          panel.grid = element_blank(),
+          legend.key = element_blank())
   
-  ggsave("plots/idealpoints_oc.pdf", g, width = 12, height = 9)
+  ggsave("plots/idealpoints_oc.pdf", g, width = 10, height = 10)
 
 }
 
