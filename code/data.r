@@ -207,10 +207,18 @@ if(!file.exists("data/marsad.rda")) {
   amendements$nconstituencies = sapply(unique(amendements$uid), n_count, attr = "circo")
   amendements$nparties = sapply(unique(amendements$uid), n_count, attr = "parti")
   
+  save(deputes, amendements, file = "data/marsad.rda")
+  
+}
+
+load("data/marsad.rda")
+
+if(!file.exists("plots/counts_per_amendment.pdf")) {
+  
   counts = melt(amendements[, which(grepl("^n|type", names(amendements))) ], "type")
   counts$variable = substring(counts$variable, 2)
   
-  qplot(data = counts, x = factor(value), fill = I("grey25"), geom = "bar") +
+  g = qplot(data = counts, x = factor(value), fill = I("grey25"), geom = "bar") +
     scale_x_discrete(breaks = c(2, 5, 10, 20, 30, 60)) +
     facet_grid(type ~ variable, scales = "free_y") +
     labs(x = "\ncount per amendment", y = "number of amendments\n") +
@@ -218,9 +226,61 @@ if(!file.exists("data/marsad.rda")) {
     theme_linedraw(16) +
     theme(panel.grid = element_blank())
   
-  ggsave("plots/counts_per_amendment.pdf", width = 18, height = 6)
+  ggsave("plots/counts_per_amendment.pdf", g, width = 18, height = 6)
   
-  save(deputes, amendements, file = "data/marsad.rda")
+}
+
+if(!file.exists("plots/counts_per_electoral_article.pdf")) {
+  
+  y = subset(amendements, type == "Loi électorale")
+  blocs = data.frame()
+  
+  for(j in 1:nrow(y)) {
+    
+    d = unlist(strsplit(y$aut[ j ], ";"))
+    d = deputes[ d, "bloc" ]
+    if(length(d)) {
+      d = data.frame(art = y$art[ j ], d)
+      blocs = rbind(blocs, d)
+    }
+    
+  }
+  
+  blocs$art = factor(blocs$art, levels = 1:170)
+  blocs = merge(blocs, unique(elec[, c("art", "ch") ]), by = "art", all.x = TRUE)
+  
+  g = qplot(data = blocs, x = art, fill = d, alpha = I(2 / 3), geom = "bar") + 
+    scale_x_discrete(breaks = c("Préambule", 4, 18, 47, 98, 147, 164)) + 
+    scale_fill_manual("", values = colors, na.value = "grey") + 
+    labs(y = "number of amendment sponsors\n", x = "\narticle")
+  
+  ggsave("plots/counts_per_electoral_article.pdf", g, width = 16, height = 9)
+  
+}
+
+if(!file.exists("plots/counts_per_constitution_article.pdf")) {
+  
+  y = subset(amendements, type == "Constitution")
+  blocs = data.frame()
+  
+  for(j in 1:nrow(y)) {
+    
+    d = unlist(strsplit(y$aut[ j ], ";"))
+    d = deputes[ d, "bloc" ]
+    d = data.frame(art = y$art[ j ], d)
+    blocs = rbind(blocs, d)
+    
+  }
+  
+  blocs$art = factor(blocs$art, levels = c("Préambule", 1:146))
+  blocs = merge(blocs, unique(y[, c("art", "ch") ]), by = "art", all.x = TRUE)
+  
+  g = qplot(data = blocs, x = art, fill = d, alpha = I(2 / 3), geom = "bar") + 
+    scale_x_discrete(breaks = c("Préambule", 21, 51, 71, 102, 125, 131, 143, 145, 148)) + 
+    scale_fill_manual("", values = colors) + 
+    labs(y = "number of amendment sponsors\n", x = "\narticle")
+  
+  ggsave("plots/counts_per_constitution_article.pdf", g, width = 16, height = 9)
   
 }
 
@@ -241,6 +301,54 @@ if(!file.exists("plots/demographics.pdf")) {
     theme(panel.grid = element_blank())
   
   ggsave("plots/demographics.pdf", g, width = 18, height = 9)
+  
+}
+
+# scraper
+
+if(!file.exists("data/votes.rda")) {
+  
+  get_votes <- function(x) {  
+    
+    u = xpathSApply(p, paste0("//div[contains(@class, 'votants-", x, "')]/a[contains(@href, '/deputes/')]/@href"))
+    return(paste0(gsub("/fr/deputes/", "", u), collapse = ";"))
+    
+  }
+  
+  constit = htmlParse("http://www.marsad.tn/fr/votes/constitution")
+  constit = xpathSApply(constit, "//a[contains(@href, '/vote/')]/@href") # links
+  
+  h = htmlParse("http://www.marsad.tn/fr/votes")
+  n = gsub("\"", "'", scrubber(xpathSApply(h, "//a[contains(@href, '/vote/')]", 
+                                           xmlValue), 
+                               rm.quote = FALSE, fix.space = FALSE)) # titles
+  h = xpathSApply(h, "//a[contains(@href, '/vote/')]/@href") # links
+  votes = data.frame()
+  
+  for(i in length(h):1) {
+    
+    cat(sprintf("%5g", i), n[i])
+    p = htmlParse(paste0("http://www.marsad.tn", h[i]))
+    
+    d = data.frame(
+      uid = gsub("/fr/vote/", "", h[i]),
+      date = xpathSApply(p, "//div[@id='main']/*/h3", xmlValue)[1],
+      titre1 = n[i],
+      titre2 = xpathSApply(p, "//title", xmlValue),
+      constit = h[i] %in% constit,
+      pour = get_votes("pour"),
+      contre = get_votes("contre"),
+      abstenu = get_votes("abstenu"),
+      absent = get_votes("absent"),
+      excuse = get_votes("excuse"),
+      stringsAsFactors = FALSE
+    )
+    cat(" [", d$date, "]\n")
+    votes = rbind(votes, d)
+    
+  }
+  
+  save(votes, file = "data/votes.rda")
   
 }
 

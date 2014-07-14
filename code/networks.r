@@ -27,60 +27,6 @@ for(sample in splits) {
     
     cat("Full data:", nrow(amendements), "amendments")
     
-    if(!file.exists("plots/counts_per_electoral_article.pdf")) {
-      
-      y = subset(amendements, type == "Loi électorale")
-      blocs = data.frame()
-      
-      for(j in 1:nrow(y)) {
-        
-        d = unlist(strsplit(y$aut[ j ], ";"))
-        d = deputes[ d, "bloc" ]
-        if(length(d)) {
-          d = data.frame(art = y$art[ j ], d)
-          blocs = rbind(blocs, d)
-        }
-        
-      }
-      
-      blocs$art = factor(blocs$art, levels = 1:170)
-      blocs = merge(blocs, unique(elec[, c("art", "ch") ]), by = "art", all.x = TRUE)
-      
-      g = qplot(data = blocs, x = art, fill = d, alpha = I(2 / 3), geom = "bar") + 
-        scale_x_discrete(breaks = c("Préambule", 4, 18, 47, 98, 147, 164)) + 
-        scale_fill_manual("", values = colors, na.value = "grey") + 
-        labs(y = "number of amendment sponsors\n", x = "\narticle")
-      
-      ggsave("plots/counts_per_electoral_article.pdf", g, width = 16, height = 9)
-      
-    }
-    
-    if(!file.exists("plots/counts_per_constitution_article.pdf")) {
-      
-      y = subset(amendements, type == "Constitution")
-      blocs = data.frame()
-      
-      for(j in 1:nrow(y)) {
-        
-        d = unlist(strsplit(y$aut[ j ], ";"))
-        d = deputes[ d, "bloc" ]
-        d = data.frame(art = y$art[ j ], d)
-        blocs = rbind(blocs, d)
-        
-      }
-      
-      blocs$art = factor(blocs$art, levels = c("Préambule", 1:146))
-      blocs = merge(blocs, unique(y[, c("art", "ch") ]), by = "art", all.x = TRUE)
-      
-      g = qplot(data = blocs, x = art, fill = d, alpha = I(2 / 3), geom = "bar") + 
-        scale_x_discrete(breaks = c("Préambule", 21, 51, 71, 102, 125, 131, 143, 145, 148)) + 
-        scale_fill_manual("", values = colors) + 
-        labs(y = "number of amendment sponsors\n", x = "\narticle")
-      
-      ggsave("plots/counts_per_constitution_article.pdf", g, width = 16, height = 9)
-      
-    }
-    
   }
   
   cat("", nrow(deputes), "MPs\n")
@@ -155,6 +101,78 @@ for(sample in splits) {
   }
   
   load(file)
+  
+  if(plot == "plots/network_constit.pdf" & !file.exists("constitution_network.gexf")) {
+    
+    entropize <- function(x, n) {
+      by = diff(range(x, na.rm = TRUE)) / 20
+      return(round(x + runif(n, min = by * -1, max = by), 2))
+    }
+    
+    deputes$naissance = NULL
+    
+    # plot nodes with no coordinates at means
+    deputes$lon[ is.na(deputes$lon) ] = mean(deputes$lon, na.rm = TRUE)
+    deputes$lat[ is.na(deputes$lat) ] = mean(deputes$lat, na.rm = TRUE)
+    
+    # add 5% random noise to avoid overplotting
+    deputes$lon = entropize(deputes$lon, network.size(net))
+    deputes$lat = entropize(deputes$lat, network.size(net))
+    
+    network::delete.vertices(net, which(!network.vertex.names(net) %in% deputes$nom))
+    rownames(deputes) = deputes$nom
+    deputes = deputes[ network.vertex.names(net), ]
+    
+    deputes$degree = degree(as.sociomatrix(net))
+    deputes$distance = rowMeans(geodist(as.sociomatrix(net))$gdist) # average path length
+    
+    rownames(deputes) = deputes$uid
+    net %e% "source" = deputes[ net %e% "source", "nom" ]
+    net %e% "target" = deputes[ net %e% "target", "nom" ]
+    
+    relations = data.frame(
+      source = as.numeric(factor(net %e% "source", levels = levels(factor(deputes$nom)))),
+      target = as.numeric(factor(net %e% "target", levels = levels(factor(deputes$nom)))),
+      weight = round(net %e% "weight", 4)
+    )
+    relations = na.omit(relations)
+    
+    nodes = data.frame(id = 1:nrow(deputes), label = network.vertex.names(net))
+    net = as.matrix.network.adjacency(net)
+    
+    position = do.call("gplot.layout.fruchtermanreingold", list(net, NULL))
+    position = as.matrix(cbind(position, 1))
+    colnames(position) = c("x", "y", "z")
+    
+    # compress floats
+    position[, "x"] = round(position[, "x"], 2)
+    position[, "y"] = round(position[, "y"], 2)
+    
+    # strong ties (upper quartile)
+    q = (relations[, 3] >= quantile(relations[, 3], .75))
+    
+    nodecolors = t(col2rgb(colors))
+    nodecolors = lapply(deputes$bloc, function(x)
+      data.frame(r = nodecolors[x, 1], g = nodecolors[x, 2], b = nodecolors[x, 3], a = .3 ))
+    nodecolors = as.matrix(rbind.fill(nodecolors))
+    
+    names(deputes)[ which(names(deputes) == "uid") ] = "url"
+    deputes$url = paste0("http://www.marsad.tn/fr/deputes/", deputes$url)
+    
+    write.gexf(nodes = nodes,
+               edges = relations[, -3],
+               edgesWeight = 1 + (relations[, 3] >= quantile(relations[, 3], .75)),
+               nodesAtt = deputes[, c("url", "pic", "circo", "sexe", "bloc", "liste", "parti",
+                                      "lon", "lat", "degree", "distance") ],
+               nodesVizAtt = list(position = position, color = nodecolors, size = deputes$degree),
+               edgesVizAtt = list(size = relations[, 3]),
+               defaultedgetype = "undirected",
+               meta = list(creator = "rgexf",
+                           description = "Tunisian Constitution amendment cosponsorships.",
+                           keywords = "Constitution, Parliament, Tunisia"),
+               output = "constitution_network.gexf")
+    
+  }
   
   if(!file.exists(plot)) {
     
