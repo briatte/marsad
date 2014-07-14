@@ -6,6 +6,7 @@ ergm_*
 idealpoints_*
 oc_*
 loyalty_*
+network_*
 
 *.gexf
 
