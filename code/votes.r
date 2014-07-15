@@ -1,11 +1,6 @@
 sample = FALSE
 
-if(is.character(sample)) {
-  plot = paste0("_", sample)
-} else {
-  plot = ""
-}
-
+plot = ifelse(is.character(sample), paste0("_", sample), "")
 scores = paste0("data/scores", plot, ".rda")
 
 load("data/votes.rda")  # roll calls
@@ -120,9 +115,10 @@ if(!file.exists(scores)) {
                 legis.names = deputes$nom, legis.data = deputes,
                 vote.names = votes$uid[ !mino ], vote.data = votes[ !mino, ])
 
-  # drops 347 unanimous votes; keeps all legislators and 720 votes
+  # drops 347 unanimous votes; drops 0/1 legislator(s) and 720 votes
   RC = dropRollCall(RC, dropList = list(lop = 0, legisMin = 24))
 
+  deputes = subset(deputes, nom %in% RC$legis.data$nom)
   deputes$loyalty = summary(RC, verbose = TRUE)$partyLoyalty
 
   t = tapply(deputes$loyalty, deputes$bloc, mean)
@@ -191,7 +187,7 @@ cat("alpha-NOMINATE scores (2 dimensions):\n",
           !grepl("Nahdha", AN2$wnom.result$legislators$bloc), na.rm = TRUE),
     "out of", sum(!grepl("Nahdha", AN2$wnom.result$legislators$bloc)), "\n")
 
-if(!file.exists("plots/idealpoints.pdf")) {
+if(!file.exists(paste0("plots/idealpoints", plot, ".pdf"))) {
   
   d = data.frame(
     id = deputes$nom[ deputes$nom %in% colnames(as.mcmc(AN2$legislators[[1]])) ],
@@ -208,17 +204,17 @@ if(!file.exists("plots/idealpoints.pdf")) {
     scale_color_manual("", values = colors) +
     coord_flip() + 
     labs(y = "\nA-NOMINATE", x = NULL) +
-    theme_linedraw(12) +
+    theme_linedraw(16) +
     theme(panel.grid = element_blank(),
           legend.key = element_blank(),
           axis.text.y = element_text(color = colors[ d$bl[ order(d$an) ] ], size = 6))
   
-  ggsave("plots/idealpoints.pdf", g, width = 9, height = 18)
-
+  ggsave(paste0("plots/idealpoints", plot, ".pdf"), g, width = 9, height = 18)
+  
 }
 
-if(!file.exists("plots/idealpoints_an.pdf")) {
-
+if(!file.exists(paste0("plots/idealpoints", plot, "_an.pdf"))) {
+  
   d = data.frame(
     id = deputes$nom[ deputes$nom %in% colnames(as.mcmc(AN2$legislators[[1]])) ],
     bl = deputes$bloc[ deputes$nom %in% colnames(as.mcmc(AN2$legislators[[1]])) ],
@@ -240,11 +236,11 @@ if(!file.exists("plots/idealpoints_an.pdf")) {
           panel.grid = element_blank(),
           legend.key = element_blank())
   
-  ggsave("plots/idealpoints_an.pdf", g, width = 10, height = 10)
-
+  ggsave(paste0("plots/idealpoints", plot, "_an.pdf"), g, width = 10, height = 10)
+  
 }
 
-if(!file.exists("plots/idealpoints_oc.pdf")) {
+if(!file.exists(paste0("plots/idealpoints", plot, "_oc.pdf"))) {
   
   g = qplot(data = OC2$legislators, x = coord1D, y = coord2D, color = bloc,
             label = gsub("(\\w)(\\w+) (.*)", "\\1 \\3", nom), size = I(4), 
@@ -261,8 +257,8 @@ if(!file.exists("plots/idealpoints_oc.pdf")) {
           panel.grid = element_blank(),
           legend.key = element_blank())
   
-  ggsave("plots/idealpoints_oc.pdf", g, width = 10, height = 10)
-
+  ggsave(paste0("plots/idealpoints", plot, "_oc.pdf"), g, width = 10, height = 10)
+  
 }
 
 # kthxbye
