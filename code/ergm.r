@@ -24,6 +24,7 @@ bootMPLE <- function(Y, X, nboot){
 }
 
 splits = c("data/ergm.rda", "data/ergm_constit.rda", "data/ergm_elect.rda")
+result = matrix(nrow = 18)
 for(raw in splits) {
   
   if(!file.exists(raw)) {
@@ -149,7 +150,7 @@ for(raw in splits) {
   coefs = cbind(rownames(coefs), coefs)
   
   names(coefs) = c("term", "b", "se", "z", "p")
-  write.csv(coefs, file = gsub(".rda", ".csv", raw), row.names = FALSE)
+  # write.csv(coefs, file = gsub(".rda", ".csv", raw), row.names = FALSE)
   
   p = subset(coefs, !grepl("factor|nodecov", term))
   p$term = gsub("(.*).bloc.|^B", "", p$term)
@@ -170,24 +171,31 @@ for(raw in splits) {
   m = p[ order(as.numeric(p$term)), ]
   m$p = ifelse(m$p < .001, "***", ifelse(m$p < .01, "**", ifelse(m$p < .05, "*", "")))
   m$term = gsub("\\.", " ", as.character(m$term))
-  m[, 2:4] = round(m[, 2:4], 2)
+  m[, 2:4] = round(as.matrix(m[, 2:4]), 2)
+  m[, 2:4] = gsub("-", "–", as.matrix(m[, 2:4]))
   m[, 3] = paste0("(", m[, 3], ")")
   #   m[, 5] = paste0("(", m[, 5], ")")
   #   m[, 7] = paste0("(", m[, 7], ")")
-  m = rbind(c("\\textit{Network structure}", rep("", ncol(m) - 1)),
+  m = rbind(c("\\\\\\textit{Network structure}\\\\", rep("", ncol(m) - 1)),
             m[ 1:4, ],
-            c("\\textit{Balancing effects}", rep("", ncol(m) - 1)),
+            c("\\\\\\textit{Balancing effects}\\\\", rep("", ncol(m) - 1)),
             m[ 5:8, ],
-            c("\\textit{Party homophily}", rep("", ncol(m) - 1)),
-            m[10:16, ])
+            c("\\\\\\textit{Party homophily}\\\\", rep("", ncol(m) - 1)),
+            m[10:16, ],
+            c("\\\\\\textit{Model fit}\\\\", rep("", ncol(m) - 1)),
+            )
   
-  colnames(m)[ c(1:3, 5) ] = c("ERGM term", "$\\Beta$", "SE", "\\emph{p}")
+  colnames(m)[ c(1:3, 5) ] = c("Term", "$\\beta$", "SE", "\\textit{p}")
   
-  print(xtable(m[, c(1:3, 5) ], align = "lrrrr"),
+  print(xtable(m[, c(1:3, 5) ], align = "llrrr", label = paste0("tbl:", gsub(".rda", "", raw)),
+               caption = "Exponential random graph model of amendment cosponsorship.\\\\
+               Levels of significance: ***~$p < 0.001$, **~$p < 0.01$, *~$p < 0.05$"),
         sanitize.colnames.function = as.character,
         sanitize.text.function = as.character,
         include.rownames = FALSE, file = gsub(".rda", ".tex", raw))
   
+#   result = cbind(result, m[, c(1:3, 5) ])
+
   #   p = subset(p, grepl("\\.|Ettakatol", term))
   #   p$term = gsub("\\.", " ", p$term)
   #   p$term = reorder(p$term, p$b)
@@ -222,3 +230,18 @@ for(raw in splits) {
   #           panel.grid.major.x = element_blank())
   
 }
+
+# result = rbind(c("", "All", "", "", "Constitution", "", "", "Electoral", "", ""), result[, c(2:5, 7:9, 11:13) ])
+# colnames(result) = gsub("\\.\\d", "", colnames(result))
+
+# \\[.15em] & %
+#   \multicolumn{3}{c}{\textbf{All}} & %
+#   \multicolumn{3}{c}{\textbf{Constitution}} &
+#   \multicolumn{3}{c}{\textbf{Electoral Law}} \\
+# \\[.15em]\textit{Network structure}\\[.15em] &  &
+
+# print(xtable(result, align = "llrrlrrlrrl", label = "tbl:ergm",
+#              caption = "Exponential random graph models of amendment cosponsorship.\\\\Levels of significance: ***~$p < 0.001$, **~$p < 0.01$, *~$p < 0.05$"),
+#       sanitize.colnames.function = as.character,
+#       sanitize.text.function = as.character,
+#       include.rownames = FALSE, file = "data/ergm.tex")
