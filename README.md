@@ -3,11 +3,11 @@ A scraper for [Marsad](http://www.marsad.tn) data that
 * builds networks out of constitutional and electoral law amendments
 * estimates legislator ideal points from their voting records
 
-## DEMO
-
-Click to view the Constitution amendment cosponsorship network:
+The repository was initially put together to build this [interactive visualization](http://f.briatte.org/parlviz/marsad/) of amendment cosponsorships:
 
 [![](plots/demo.png)](http://f.briatte.org/parlviz/marsad/)
+
+The current version produces almost exactly the same data, updated to the post-2014 election assembly.
 
 ## HOWTO
 

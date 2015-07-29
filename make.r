@@ -71,7 +71,7 @@ vot = c(
 # make
 source("code/01-get-mps.r")
 source("code/02-get-amendments.r")
-source("code/03-get-networks.r")
+source("code/03-plot-networks.r")
 source("code/04-get-votes.r")
 source("code/05-get-rollcall-matrixes.r")
 source("code/06-get-rollcall-objects.r")
