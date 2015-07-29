@@ -7,19 +7,20 @@ A scraper for [Marsad](http://www.marsad.tn) data that
 
 Click to view the Constitution amendment cosponsorship network:
 
-[![](plots/demo.png)](http://briatte.org/marsad/)
+[![](plots/demo.png)](http://f.briatte.org/parlviz/marsad/)
 
 ## HOWTO
 
-The main entry point is `make.r`, which will
-
-1. collect MP and amendment data from Marsad.tn
-2. build undirected cosponsorship networks
-3. model the extent of political bloc homophily
-4. collect MP votes to estimate ideal points
+Replicate by running `make.r` in R.
 
 ## TODO
 
 - [x] add [electoral law](http://www.marsad.tn/fr/loi_electorale/index) amendments
 - [x] add [votes](http://www.marsad.tn/fr/votes) and ideal points
-- [x] fix birth year values
+- [x] support post-2014 votes
+- [x] optimize code
+- [x] reorganise file structure
+
+## THANKS
+
+Thanks to [Jean-Baptiste Gallopin](http://yale.academia.edu/JeanBaptisteGallopin) and to the [Marsad](http://www.marsad.tn) team.
